@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 public class AuthenticationService {
     private static AuthenticationService instance;
     private User loggedInUser; // To store the currently logged-in user
+    private boolean menuStatus;
 
     private AuthenticationService() {}
 
@@ -54,6 +55,21 @@ public class AuthenticationService {
 
     public User getLoggedInUser() {
         return loggedInUser;
+    }
+    
+    public boolean getMenuStatus(){
+      return menuStatus;
+    }
+    
+      public boolean setMenuStatus(boolean b){
+      return this.menuStatus = b;
+   
+       
+    }
+    
+    public void logout() {
+        this.loggedInUser = null;
+        System.out.println("User has been logged out.");
     }
 
     public static String hashPassword(String password) {

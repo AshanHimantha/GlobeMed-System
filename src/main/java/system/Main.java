@@ -6,6 +6,7 @@ import system.ui.LoginUi;
 
 import javax.swing.*;
 
+
 public class Main {
 
     public static void main(String[] args) {
@@ -21,6 +22,8 @@ public class Main {
         SwingUtilities.invokeLater(() -> {
             LoginUi loginUi = new LoginUi();
             loginUi.setVisible(true);
+//MainFrame mainf = new MainFrame();
+//mainf.setVisible(true);
         });
     }
 

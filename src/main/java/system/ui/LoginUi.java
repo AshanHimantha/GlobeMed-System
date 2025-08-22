@@ -95,6 +95,10 @@ public class LoginUi extends javax.swing.JFrame {
             }
         });
 
+        roundedTextField1.setText("doctor");
+
+        roundedPasswordField11.setText("pass123");
+
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
@@ -223,10 +227,10 @@ private boolean isMaximized = false;
 
         // 3. Provide feedback to the user
         if (isAuthenticated) {
-            JOptionPane.showMessageDialog(this,
-                "Login Successful! Welcome, " + AuthenticationService.getInstance().getLoggedInUser().getFirstName() + ".",
-                "Success",
-                JOptionPane.INFORMATION_MESSAGE);
+            
+            
+            JFrame main = new MainFrame();
+            main.setVisible(true);
 
             // Close this login window
             this.dispose();

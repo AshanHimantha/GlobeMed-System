@@ -240,8 +240,14 @@
               </Events>
             </Component>
             <Component class="system.ui.components.RoundedTextField" name="roundedTextField1">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="doctor"/>
+              </Properties>
             </Component>
             <Component class="system.ui.components.RoundedPasswordField1" name="roundedPasswordField11">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="pass123"/>
+              </Properties>
             </Component>
           </SubComponents>
         </Container>
