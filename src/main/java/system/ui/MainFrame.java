@@ -208,18 +208,7 @@ private List<NavItem> navItems = new ArrayList<>();
         jSplitPane1.setLeftComponent(jPanel2);
 
         jPanel3.setBackground(new java.awt.Color(237, 237, 237));
-
-        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
-        jPanel3.setLayout(jPanel3Layout);
-        jPanel3Layout.setHorizontalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 969, Short.MAX_VALUE)
-        );
-        jPanel3Layout.setVerticalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 760, Short.MAX_VALUE)
-        );
-
+        jPanel3.setLayout(new java.awt.CardLayout());
         jSplitPane1.setRightComponent(jPanel3);
 
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
