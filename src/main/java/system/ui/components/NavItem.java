@@ -55,7 +55,7 @@ public class NavItem extends javax.swing.JPanel {
 
         iconLabel = new JLabel();
         textLabel = new JLabel("Text");
-        textLabel.setFont(new Font("Geist Medium", Font.PLAIN, 16));
+        textLabel.setFont(new Font("Inter 18pt Semibold", Font.PLAIN, 16));
         // Set initial color based on active state - inactive items should be light gray
         textLabel.setForeground(active ? textActive : textInactive);
 

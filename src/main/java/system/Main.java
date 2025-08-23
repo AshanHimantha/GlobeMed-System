@@ -1,10 +1,14 @@
 package system;
 
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
+import jakarta.persistence.EntityManager;
 import system.ui.LoginUi;
 
 
 import javax.swing.*;
+import system.model.Patient;
+import system.model.User;
+import system.service.PersistenceManager;
 
 
 public class Main {
@@ -17,11 +21,15 @@ public class Main {
             System.err.println("Failed to initialize FlatLaf look and feel.");
         }
 
-
         // 3. Launch the Swing GUI on the Event Dispatch Thread (EDT)
         SwingUtilities.invokeLater(() -> {
             LoginUi loginUi = new LoginUi();
             loginUi.setVisible(true);
+            
+            
+            
+            //initializeDatabase();
+            
 //MainFrame mainf = new MainFrame();
 //mainf.setVisible(true);
         });
@@ -66,4 +74,43 @@ public class Main {
 //        em.getTransaction().commit();
 //        em.close();
 //    }
+    
+    
+    
+    
+    
+    
+//    private static void initializeDatabase() {
+//        EntityManager em = PersistenceManager.getInstance().getEntityManager();
+//        
+//        try {
+//            em.getTransaction().begin();
+//
+//            if (em.find(Patient.class, "P101") == null) {
+//                Patient patient1 = new Patient("P101", "John Smith", "Diagnosed with hypertension in 2020. Allergic to penicillin.");
+//                em.persist(patient1);
+//            }
+//            if (em.find(Patient.class, "P102") == null) {
+//                Patient patient2 = new Patient("P102", "Jane Doe", "History of asthma. No known allergies.");
+//                em.persist(patient2);
+//            }
+//            if (em.find(Patient.class, "P103") == null) {
+//                Patient patient3 = new Patient("P103", "Peter Jones", "Requires annual check-ups for diabetes type 2.");
+//                em.persist(patient3);
+//            }
+//
+//            em.getTransaction().commit();
+//        } catch (Exception e) {
+//            // If something goes wrong, roll back the transaction
+//            if (em.getTransaction().isActive()) {
+//                em.getTransaction().rollback();
+//            }
+//            e.printStackTrace();
+//        } finally {
+//            em.close();
+//        }
+//    }
+//    
+    
+    
 }

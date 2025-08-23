@@ -7,6 +7,8 @@
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
         <!-- Entity classes will be added here -->
+         <class>com.globemed.system.model.User</class>
+        <class>com.globemed.system.model.Patient</class>
 
         <properties>
             <!-- MySQL Database Connection Settings -->
