@@ -1,22 +1,18 @@
 
 package system.ui.panels;
 
-import system.model.User;
-import system.patterns.decorator.AuditLogDecorator;
-import system.patterns.decorator.AuthorizationDecorator;
-import system.patterns.decorator.PatientRecord;
-import system.patterns.decorator.SimplePatientRecord;
-import system.service.AuthenticationService;
-
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.JOptionPane;
+import system.model.Patient;
+import system.service.PatientService;
 
 public class PatientRecordPanel extends javax.swing.JPanel {
     
-
+private final PatientService patientService;
     
  public PatientRecordPanel() {
      initComponents();
+     this.patientService = new PatientService();
     }
 
  
@@ -89,12 +85,17 @@ public class PatientRecordPanel extends javax.swing.JPanel {
         jLabel5.setText("Patinet Name");
 
         roundedTextField1.setBackground(new java.awt.Color(249, 249, 249));
-        roundedTextField1.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 1));
-        roundedTextField1.setForeground(new java.awt.Color(51, 51, 51));
-        roundedTextField1.setToolTipText(" Enter Patient name");
+        roundedTextField1.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 10, 1, 1));
+        roundedTextField1.setForeground(new java.awt.Color(153, 153, 153));
+        roundedTextField1.setText("Enter Patient name");
+        roundedTextField1.setToolTipText("");
         roundedTextField1.setFont(new java.awt.Font("Inter", 0, 12)); // NOI18N
-        roundedTextField1.setMargin(new java.awt.Insets(2, 20, 2, 20));
         roundedTextField1.setName(""); // NOI18N
+        roundedTextField1.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                roundedTextField1FocusGained(evt);
+            }
+        });
 
         jLabel6.setBackground(new java.awt.Color(51, 51, 51));
         jLabel6.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 14)); // NOI18N
@@ -102,10 +103,16 @@ public class PatientRecordPanel extends javax.swing.JPanel {
         jLabel6.setText("Age");
 
         roundedTextField2.setBackground(new java.awt.Color(249, 249, 249));
-        roundedTextField2.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 1));
+        roundedTextField2.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 10, 1, 1));
         roundedTextField2.setForeground(new java.awt.Color(153, 153, 153));
+        roundedTextField2.setText("Enter Age");
         roundedTextField2.setFont(new java.awt.Font("Inter", 0, 12)); // NOI18N
         roundedTextField2.setMargin(new java.awt.Insets(2, 20, 2, 20));
+        roundedTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                roundedTextField2FocusGained(evt);
+            }
+        });
 
         jLabel7.setBackground(new java.awt.Color(51, 51, 51));
         jLabel7.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 14)); // NOI18N
@@ -122,23 +129,35 @@ public class PatientRecordPanel extends javax.swing.JPanel {
         jLabel8.setText("Contact no");
 
         roundedTextField3.setBackground(new java.awt.Color(249, 249, 249));
-        roundedTextField3.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 1));
+        roundedTextField3.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 10, 1, 1));
         roundedTextField3.setForeground(new java.awt.Color(153, 153, 153));
+        roundedTextField3.setText("Enter Contact Number");
         roundedTextField3.setFont(new java.awt.Font("Inter", 0, 12)); // NOI18N
         roundedTextField3.setMargin(new java.awt.Insets(2, 20, 2, 20));
+        roundedTextField3.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                roundedTextField3FocusGained(evt);
+            }
+        });
 
         jLabel9.setBackground(new java.awt.Color(51, 51, 51));
         jLabel9.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 14)); // NOI18N
         jLabel9.setForeground(new java.awt.Color(51, 51, 51));
         jLabel9.setText("Medical History");
 
-        jTextArea1.setBackground(new java.awt.Color(247, 247, 247));
+        jTextArea1.setBackground(new java.awt.Color(249, 249, 249));
         jTextArea1.setColumns(20);
         jTextArea1.setFont(new java.awt.Font("Inter", 0, 12)); // NOI18N
+        jTextArea1.setForeground(new java.awt.Color(153, 153, 153));
         jTextArea1.setRows(1);
         jTextArea1.setTabSize(1);
-        jTextArea1.setText("Enter medical history");
+        jTextArea1.setText("Enter Medical History");
         jTextArea1.setCursor(new java.awt.Cursor(java.awt.Cursor.TEXT_CURSOR));
+        jTextArea1.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                jTextArea1FocusGained(evt);
+            }
+        });
         jScrollPane1.setViewportView(jTextArea1);
 
         jButton3.setBackground(new java.awt.Color(0, 153, 255));
@@ -226,7 +245,7 @@ public class PatientRecordPanel extends javax.swing.JPanel {
         roundedPanel2.setLayout(roundedPanel2Layout);
         roundedPanel2Layout.setHorizontalGroup(
             roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 698, Short.MAX_VALUE)
+            .addGap(0, 872, Short.MAX_VALUE)
         );
         roundedPanel2Layout.setVerticalGroup(
             roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -262,7 +281,7 @@ public class PatientRecordPanel extends javax.swing.JPanel {
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel2)
                     .addComponent(jLabel1))
-                .addContainerGap(763, Short.MAX_VALUE))
+                .addContainerGap(937, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -278,9 +297,91 @@ public class PatientRecordPanel extends javax.swing.JPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-       
+       // --- A. GATHER DATA from UI fields ---
+        String name = roundedTextField1.getText();
+        String ageStr = roundedTextField2.getText();
+        String gender = (String) jComboBox1.getSelectedItem();
+        String contactNo = roundedTextField3.getText();
+        String history = jTextArea1.getText();
+
+        // --- B. VALIDATE the input ---
+        if (name.isEmpty() || name.equals("Enter Patient name") || ageStr.isEmpty() || ageStr.equals("Enter Age")) {
+            JOptionPane.showMessageDialog(this, "Patient Name and Age are required fields.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int age;
+        try {
+            age = Integer.parseInt(ageStr);
+            if (age < 0 || age > 120) {
+                JOptionPane.showMessageDialog(this, "Please enter a valid age.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Age must be a valid number.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // --- C. CALL the service to add the patient ---
+        Patient createdPatient = patientService.addPatient(name, age, gender, contactNo, history);
+
+        // --- D. PROVIDE FEEDBACK to the user ---
+        if (createdPatient != null) {
+            JOptionPane.showMessageDialog(this, 
+                "Patient saved successfully!\nNew Patient ID: " + createdPatient.getPatientId(), 
+                "Success", 
+                JOptionPane.INFORMATION_MESSAGE);
+            clearFeilds();
+            
+            // TODO: Refresh the patient list on the right side of the split pane
+            // clearFormFields(); // A helper method to reset the form
+        } else {
+            JOptionPane.showMessageDialog(this, 
+                "Failed to save patient. A database error occurred.", 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    
     }//GEN-LAST:event_jButton3ActionPerformed
 
+    private void roundedTextField1FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_roundedTextField1FocusGained
+       if(roundedTextField1.getText().equals("Enter Patient name")){
+            roundedTextField1.setText("");
+            roundedTextField1.setForeground(Color.BLACK);
+    }
+    }//GEN-LAST:event_roundedTextField1FocusGained
+
+    private void roundedTextField2FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_roundedTextField2FocusGained
+          if(roundedTextField2.getText().equals("Enter Age")){
+               roundedTextField2.setText("");
+                roundedTextField2.setForeground(Color.BLACK);
+          }
+    }//GEN-LAST:event_roundedTextField2FocusGained
+
+    private void roundedTextField3FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_roundedTextField3FocusGained
+         if(roundedTextField3.getText().equals("Enter Contact Number")){
+               roundedTextField3.setText("");
+                roundedTextField3.setForeground(Color.BLACK);
+          }
+    }//GEN-LAST:event_roundedTextField3FocusGained
+
+    private void jTextArea1FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jTextArea1FocusGained
+              
+               if(jTextArea1.getText().equals("Enter Medical History")){
+               jTextArea1.setText("");
+                jTextArea1.setForeground(Color.BLACK);
+          }
+    }//GEN-LAST:event_jTextArea1FocusGained
+
+    private void clearFeilds(){
+    roundedTextField1.setText("");
+    roundedTextField2.setText("");
+    roundedTextField3.setText("");
+    jTextArea1.setText("");
+    
+    }
+    
+    
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton3;
