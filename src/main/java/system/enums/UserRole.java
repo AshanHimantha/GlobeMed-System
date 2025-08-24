@@ -4,6 +4,5 @@ public enum UserRole {
     DOCTOR,
     NURSE,
     PHARMACIST,
-    ADMIN,
-    UNKNOWN // A default role for safety
+    ADMIN,  
 }
