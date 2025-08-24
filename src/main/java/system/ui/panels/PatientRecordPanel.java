@@ -2,9 +2,14 @@
 package system.ui.panels;
 
 import java.awt.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import javax.swing.JOptionPane;
 import system.model.Patient;
 import system.service.PatientService;
+import system.ui.components.PatientCard;
+import java.util.List; 
+import system.service.EncryptionUtil;
 
 public class PatientRecordPanel extends javax.swing.JPanel {
     
@@ -13,7 +18,43 @@ private final PatientService patientService;
  public PatientRecordPanel() {
      initComponents();
      this.patientService = new PatientService();
+       fetchAndDisplayAllPatients();
+     
     }
+ 
+  public void fetchAndDisplayAllPatients(){
+       jPanel5.removeAll();
+      java.util.List<Patient> pList = patientService.getAllPatients();
+      addPatientCardsToPanel(pList);
+
+        // Refresh the panel to show the new components
+        jPanel5.revalidate();
+        jPanel5.repaint();
+      
+  }
+  
+  private void addPatientCardsToPanel(List<Patient> patientList) {
+        if (patientList.isEmpty()) {
+            // Optional: Show a message if no patients are found
+            jPanel5.add(new javax.swing.JLabel("No patient records found."));
+        } else {
+             EncryptionUtil decypt = new EncryptionUtil();
+            for (Patient patient : patientList) {
+                // Use the safe date formatter
+                String lastVisit = formatLastVisitDate(patient.getLastVisitDate());
+                jPanel5.add(new PatientCard(patient.getName(), patient.getPatientId(), patient.getAge(), patient.getGender(), lastVisit, patient.getMedicalHistory(),  decypt.decrypt(patient.getContactNumberEncrypted()),this ));
+            }
+        }
+    }
+  
+   private String formatLastVisitDate(LocalDate date) {
+        if (date == null) {
+            return "N/A"; // Return "Not Available" if the date is null
+        }
+        return date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    }
+ 
+ 
 
  
    
@@ -42,19 +83,26 @@ private final PatientService patientService;
         jButton3 = new javax.swing.JButton();
         jPanel4 = new javax.swing.JPanel();
         roundedPanel2 = new system.ui.components.RoundedPanel();
+        jLabel10 = new javax.swing.JLabel();
+        jLabel11 = new javax.swing.JLabel();
+        roundedTextField4 = new system.ui.components.RoundedTextField();
+        jButton4 = new javax.swing.JButton();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        jPanel5 = new javax.swing.JPanel();
         jPanel3 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
 
         setLayout(new java.awt.BorderLayout());
 
-        jPanel1.setBackground(new java.awt.Color(250, 253, 255));
+        jPanel1.setBackground(new java.awt.Color(247, 247, 247));
         jPanel1.setMinimumSize(new java.awt.Dimension(900, 700));
         jPanel1.setPreferredSize(new java.awt.Dimension(903, 700));
         jPanel1.setLayout(new java.awt.CardLayout());
 
         jSplitPane1.setDividerLocation(360);
         jSplitPane1.setDividerSize(0);
+        jSplitPane1.setMaximumSize(new java.awt.Dimension(2147483647, 500));
         jSplitPane1.setMinimumSize(new java.awt.Dimension(800, 300));
         jSplitPane1.setPreferredSize(new java.awt.Dimension(1250, 510));
 
@@ -70,7 +118,7 @@ private final PatientService patientService;
         roundedPanel1.setPreferredSize(new java.awt.Dimension(330, 600));
 
         jLabel3.setBackground(new java.awt.Color(0, 0, 0));
-        jLabel3.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 18)); // NOI18N
+        jLabel3.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 24)); // NOI18N
         jLabel3.setForeground(new java.awt.Color(0, 0, 0));
         jLabel3.setText("Add New Patient");
 
@@ -221,7 +269,7 @@ private final PatientService patientService;
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jLabel9)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 120, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 113, Short.MAX_VALUE)
                 .addGap(18, 18, 18)
                 .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(29, 29, 29))
@@ -234,25 +282,93 @@ private final PatientService patientService;
         jSplitPane1.setLeftComponent(jPanel2);
 
         jPanel4.setBackground(new java.awt.Color(247, 247, 247));
-        jPanel4.setPreferredSize(new java.awt.Dimension(831, 300));
-        jPanel4.setLayout(new java.awt.CardLayout());
+        jPanel4.setMaximumSize(new java.awt.Dimension(2147483647, 600));
+        jPanel4.setMinimumSize(new java.awt.Dimension(0, 600));
+        jPanel4.setPreferredSize(new java.awt.Dimension(831, 600));
+        jPanel4.setLayout(new java.awt.BorderLayout(10, 0));
 
         roundedPanel2.setBackground(new java.awt.Color(255, 255, 255));
         roundedPanel2.setForeground(new java.awt.Color(234, 234, 234));
-        roundedPanel2.setPreferredSize(new java.awt.Dimension(811, 250));
+        roundedPanel2.setMaximumSize(new java.awt.Dimension(32767, 600));
+        roundedPanel2.setMinimumSize(new java.awt.Dimension(0, 600));
+        roundedPanel2.setPreferredSize(new java.awt.Dimension(811, 600));
+
+        jLabel10.setBackground(new java.awt.Color(0, 0, 0));
+        jLabel10.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 24)); // NOI18N
+        jLabel10.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel10.setText("Add New Patient");
+
+        jLabel11.setBackground(new java.awt.Color(153, 153, 153));
+        jLabel11.setFont(new java.awt.Font("Inter", 0, 12)); // NOI18N
+        jLabel11.setForeground(new java.awt.Color(153, 153, 153));
+        jLabel11.setText("Search and manage patient records");
+
+        roundedTextField4.setBackground(new java.awt.Color(247, 247, 247));
+        roundedTextField4.setForeground(new java.awt.Color(204, 204, 204));
+        roundedTextField4.setText("Search by Name or ID");
+        roundedTextField4.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                roundedTextField4FocusGained(evt);
+            }
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                roundedTextField4FocusLost(evt);
+            }
+        });
+
+        jButton4.setBackground(new java.awt.Color(0, 153, 255));
+        jButton4.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 14)); // NOI18N
+        jButton4.setForeground(new java.awt.Color(255, 255, 255));
+        jButton4.setText("Search");
+        jButton4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton4ActionPerformed(evt);
+            }
+        });
+
+        jScrollPane2.setBackground(new java.awt.Color(255, 255, 255));
+        jScrollPane2.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 30, 1));
+        jScrollPane2.setForeground(new java.awt.Color(255, 255, 255));
+
+        jPanel5.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel5.setForeground(new java.awt.Color(255, 255, 255));
+        jPanel5.setLayout(new javax.swing.BoxLayout(jPanel5, javax.swing.BoxLayout.Y_AXIS));
+        jScrollPane2.setViewportView(jPanel5);
 
         javax.swing.GroupLayout roundedPanel2Layout = new javax.swing.GroupLayout(roundedPanel2);
         roundedPanel2.setLayout(roundedPanel2Layout);
         roundedPanel2Layout.setHorizontalGroup(
             roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 872, Short.MAX_VALUE)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, roundedPanel2Layout.createSequentialGroup()
+                .addGap(21, 21, 21)
+                .addGroup(roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jScrollPane2)
+                    .addGroup(roundedPanel2Layout.createSequentialGroup()
+                        .addGroup(roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel11)
+                            .addGroup(roundedPanel2Layout.createSequentialGroup()
+                                .addComponent(jLabel10)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 311, Short.MAX_VALUE)
+                                .addComponent(roundedTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, 309, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(20, 20, 20))
         );
         roundedPanel2Layout.setVerticalGroup(
             roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 700, Short.MAX_VALUE)
+            .addGroup(roundedPanel2Layout.createSequentialGroup()
+                .addGap(24, 24, 24)
+                .addGroup(roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel10)
+                    .addComponent(roundedTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel11)
+                .addGap(18, 18, 18)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 698, Short.MAX_VALUE)
+                .addContainerGap())
         );
 
-        jPanel4.add(roundedPanel2, "card2");
+        jPanel4.add(roundedPanel2, java.awt.BorderLayout.CENTER);
 
         jSplitPane1.setRightComponent(jPanel4);
 
@@ -281,7 +397,7 @@ private final PatientService patientService;
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel2)
                     .addComponent(jLabel1))
-                .addContainerGap(937, Short.MAX_VALUE))
+                .addContainerGap(1006, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -326,20 +442,18 @@ private final PatientService patientService;
         Patient createdPatient = patientService.addPatient(name, age, gender, contactNo, history);
 
         // --- D. PROVIDE FEEDBACK to the user ---
-        if (createdPatient != null) {
-            JOptionPane.showMessageDialog(this, 
-                "Patient saved successfully!\nNew Patient ID: " + createdPatient.getPatientId(), 
-                "Success", 
-                JOptionPane.INFORMATION_MESSAGE);
-            clearFeilds();
-            
-            // TODO: Refresh the patient list on the right side of the split pane
-            // clearFormFields(); // A helper method to reset the form
+   if (createdPatient != null) {
+            JOptionPane.showMessageDialog(this,
+                    "Patient saved successfully!\nNew Patient ID: " + createdPatient.getPatientId(),
+                    "Success",
+                    JOptionPane.INFORMATION_MESSAGE);
+            clearFields();
+            fetchAndDisplayAllPatients(); // <<< --- IMPROVEMENT: Refresh the list automatically
         } else {
-            JOptionPane.showMessageDialog(this, 
-                "Failed to save patient. A database error occurred.", 
-                "Error", 
-                JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    "Failed to save patient. A database error occurred.",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
     
     }//GEN-LAST:event_jButton3ActionPerformed
@@ -373,20 +487,59 @@ private final PatientService patientService;
           }
     }//GEN-LAST:event_jTextArea1FocusGained
 
-    private void clearFeilds(){
-    roundedTextField1.setText("");
-    roundedTextField2.setText("");
-    roundedTextField3.setText("");
-    jTextArea1.setText("");
-    
+    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
+       
+      String searchInput = roundedTextField4.getText();
+        
+        // Clear the panel before showing search results
+        
+        jPanel5.removeAll();
+
+        if (searchInput != null && !searchInput.trim().isEmpty() && !searchInput.equals("Search by Name or ID")) {
+            List<Patient> searchList = patientService.searchPatients(searchInput);
+            
+            addPatientCardsToPanel(searchList); // Use the helper method
+        } else {
+            // If the search bar is empty, show all patients again
+            fetchAndDisplayAllPatients();
+        }
+        
+        // Refresh the panel
+        jPanel5.revalidate();
+        jPanel5.repaint();
+        
+    }//GEN-LAST:event_jButton4ActionPerformed
+
+    private void roundedTextField4FocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_roundedTextField4FocusLost
+
+    }//GEN-LAST:event_roundedTextField4FocusLost
+
+    private void roundedTextField4FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_roundedTextField4FocusGained
+       roundedTextField4.setText("");
+       roundedTextField4.setForeground(Color.BLACK);
+    }//GEN-LAST:event_roundedTextField4FocusGained
+
+private void clearFields() {
+        roundedTextField1.setText("Enter Patient name");
+        roundedTextField1.setForeground(Color.GRAY);
+        roundedTextField2.setText("Enter Age");
+        roundedTextField2.setForeground(Color.GRAY);
+        roundedTextField3.setText("Enter Contact Number");
+        roundedTextField3.setForeground(Color.GRAY);
+        jTextArea1.setText("Enter Medical History");
+        jTextArea1.setForeground(Color.GRAY);
+        jComboBox1.setSelectedIndex(0);
     }
     
     
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton3;
+    private javax.swing.JButton jButton4;
     private javax.swing.JComboBox<String> jComboBox1;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel10;
+    private javax.swing.JLabel jLabel11;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
@@ -399,7 +552,9 @@ private final PatientService patientService;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
+    private javax.swing.JPanel jPanel5;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JSplitPane jSplitPane1;
     private javax.swing.JTextArea jTextArea1;
     private system.ui.components.RoundedPanel roundedPanel1;
@@ -407,5 +562,6 @@ private final PatientService patientService;
     private system.ui.components.RoundedTextField roundedTextField1;
     private system.ui.components.RoundedTextField roundedTextField2;
     private system.ui.components.RoundedTextField roundedTextField3;
+    private system.ui.components.RoundedTextField roundedTextField4;
     // End of variables declaration//GEN-END:variables
 }
