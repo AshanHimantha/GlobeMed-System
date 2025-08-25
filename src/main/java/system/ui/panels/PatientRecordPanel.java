@@ -98,7 +98,7 @@ private final PatientService patientService;
         jPanel1.setBackground(new java.awt.Color(247, 247, 247));
         jPanel1.setMinimumSize(new java.awt.Dimension(900, 700));
         jPanel1.setPreferredSize(new java.awt.Dimension(903, 700));
-        jPanel1.setLayout(new java.awt.CardLayout());
+        jPanel1.setLayout(new java.awt.CardLayout(10, 0));
 
         jSplitPane1.setDividerLocation(360);
         jSplitPane1.setDividerSize(0);
@@ -110,7 +110,7 @@ private final PatientService patientService;
         jPanel2.setMaximumSize(new java.awt.Dimension(300, 32767));
         jPanel2.setMinimumSize(new java.awt.Dimension(300, 100));
         jPanel2.setPreferredSize(new java.awt.Dimension(300, 510));
-        jPanel2.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 30, 0));
+        jPanel2.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 0, 0));
 
         roundedPanel1.setBackground(new java.awt.Color(255, 255, 255));
         roundedPanel1.setForeground(new java.awt.Color(234, 234, 234));
@@ -134,7 +134,6 @@ private final PatientService patientService;
 
         roundedTextField1.setBackground(new java.awt.Color(249, 249, 249));
         roundedTextField1.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 10, 1, 1));
-        roundedTextField1.setForeground(new java.awt.Color(153, 153, 153));
         roundedTextField1.setText("Enter Patient name");
         roundedTextField1.setToolTipText("");
         roundedTextField1.setFont(new java.awt.Font("Inter", 0, 12)); // NOI18N
@@ -152,7 +151,6 @@ private final PatientService patientService;
 
         roundedTextField2.setBackground(new java.awt.Color(249, 249, 249));
         roundedTextField2.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 10, 1, 1));
-        roundedTextField2.setForeground(new java.awt.Color(153, 153, 153));
         roundedTextField2.setText("Enter Age");
         roundedTextField2.setFont(new java.awt.Font("Inter", 0, 12)); // NOI18N
         roundedTextField2.setMargin(new java.awt.Insets(2, 20, 2, 20));
@@ -178,7 +176,6 @@ private final PatientService patientService;
 
         roundedTextField3.setBackground(new java.awt.Color(249, 249, 249));
         roundedTextField3.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 10, 1, 1));
-        roundedTextField3.setForeground(new java.awt.Color(153, 153, 153));
         roundedTextField3.setText("Enter Contact Number");
         roundedTextField3.setFont(new java.awt.Font("Inter", 0, 12)); // NOI18N
         roundedTextField3.setMargin(new java.awt.Insets(2, 20, 2, 20));
@@ -304,7 +301,6 @@ private final PatientService patientService;
         jLabel11.setText("Search and manage patient records");
 
         roundedTextField4.setBackground(new java.awt.Color(247, 247, 247));
-        roundedTextField4.setForeground(new java.awt.Color(204, 204, 204));
         roundedTextField4.setText("Search by Name or ID");
         roundedTextField4.addFocusListener(new java.awt.event.FocusAdapter() {
             public void focusGained(java.awt.event.FocusEvent evt) {
@@ -347,7 +343,7 @@ private final PatientService patientService;
                             .addComponent(jLabel11)
                             .addGroup(roundedPanel2Layout.createSequentialGroup()
                                 .addComponent(jLabel10)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 311, Short.MAX_VALUE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 364, Short.MAX_VALUE)
                                 .addComponent(roundedTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, 309, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE)))
@@ -397,7 +393,7 @@ private final PatientService patientService;
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel2)
                     .addComponent(jLabel1))
-                .addContainerGap(1006, Short.MAX_VALUE))
+                .addContainerGap(1079, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)

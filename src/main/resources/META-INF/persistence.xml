@@ -5,6 +5,7 @@
     <!-- Entity classes will be added here -->
     <class>com.globemed.system.model.User</class>
     <class>com.globemed.system.model.Patient</class>
+    <class>com.globemed.system.model.Appointment</class>
     <properties>
       <!-- MySQL Database Connection Settings -->
       <property name="jakarta.persistence.jdbc.driver" value="com.mysql.cj.jdbc.Driver"/>
@@ -16,7 +17,6 @@
       <property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect"/>
       <property name="hibernate.hbm2ddl.auto" value="update"/>
       <property name="hibernate.show_sql" value="true"/>
-      <property name="jakarta.persistence.schema-generation.database.action" value="drop-and-create"/>
     </properties>
   </persistence-unit>
 </persistence>
