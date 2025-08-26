@@ -8,7 +8,6 @@ import java.util.List;
 import system.enums.AppointmentType;
 import system.enums.PaymentMethod;
 import system.model.Appointment;
-import system.model.MedicalService;
 import system.model.Patient;
 import system.model.User;
 

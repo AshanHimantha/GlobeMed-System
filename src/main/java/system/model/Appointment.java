@@ -66,7 +66,7 @@ public class Appointment {
      * Final, flexible constructor.
      * The 'service' parameter is nullable.
      */
- public Appointment(Patient patient, User doctor, User scheduledBy, AppointmentType type, String serviceName, double price, LocalDateTime dateTime) {
+public Appointment(Patient patient, User doctor, User scheduledBy, AppointmentType type, String serviceName, double price, LocalDateTime dateTime) {
         this.patient = patient;
         this.doctor = doctor; // This can now be null
         this.scheduledBy = scheduledBy;
@@ -74,7 +74,18 @@ public class Appointment {
         this.serviceName = serviceName;
         this.price = price;
         this.appointmentDateTime = dateTime;       
-        this.status = "PENDING_PAYMENT";
+      switch (type) {
+            case CONSULTATION:
+            case DIAGNOSTIC:
+                this.status = "PENDING_PAYMENT";
+                break;
+            case SURGERY:
+                this.status = "PENDING_CONFIRMATION";
+                break;
+            default:
+                this.status = "SCHEDULED"; // A safe default
+                break;
+        }
       
     }
 
