@@ -6,6 +6,10 @@
     <class>com.globemed.system.model.User</class>
     <class>com.globemed.system.model.Patient</class>
     <class>com.globemed.system.model.Appointment</class>
+    <class>com.globemed.system.model.Claim</class>
+    <class>com.globemed.system.model.MedicalService</class>
+    <class>com.globemed.system.model.Prescription</class>
+    <class>com.globemed.system.model.PrescriptionItem</class>
     <properties>
       <!-- MySQL Database Connection Settings -->
       <property name="jakarta.persistence.jdbc.driver" value="com.mysql.cj.jdbc.Driver"/>

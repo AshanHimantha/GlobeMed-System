@@ -50,8 +50,26 @@ public class Main {
                     "Alice",
                     "Wonderland"
             );
+            doctor.setConsultationFee(1500.00);
             em.persist(doctor);
         }
+        
+         if (em.find(User.class, "doctor_jones") == null) {
+            // Use the updated constructor with first and last names
+            User doctor = new User(
+                    "doctor_jones",
+                    AuthenticationService.hashPassword("pass123"),
+                    UserRole.DOCTOR,
+                    "Bob",
+                    "Jones"
+            );
+            doctor.setConsultationFee(2500.00);
+            em.persist(doctor);
+        }
+        
+        
+        
+        
         if (em.find(User.class, "nurse") == null) {
             User nurse = new User(
                     "nurse",

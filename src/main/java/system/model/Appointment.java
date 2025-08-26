@@ -1,80 +1,104 @@
 
 package system.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import system.enums.UserRole;
+import system.enums.AppointmentType;
+import system.enums.PaymentMethod;
+
 
 @Entity
 @Table(name = "appointments")
 public class Appointment {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Let the database auto-generate the ID
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "appointment_id")
     private Long id;
 
-    // Many appointments can be for one patient.
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
-    // Many appointments can be with one doctor.
-    @ManyToOne
-    @JoinColumn(name = "doctor_username", nullable = false)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "doctor_username", nullable = true)
     private User doctor;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "scheduled_by_username", nullable = false)
+    private User scheduledBy;
+
+    /**
+     * The specific cataloged service being performed, if applicable (e.g., a specific test).
+     * This is NULL for non-catalog services like a general consultation or a custom surgery.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "service_id", nullable = true) // This is now optional
+    private MedicalService medicalService;
+
+    // These fields store the details for ALL appointments.
+    // For diagnostics, they are copied from the MedicalService.
+    // For others, they are entered directly.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "appointment_type", nullable = false)
+    private AppointmentType type;
+
+    @Column(name = "service_name", nullable = false)
+    private String serviceName;
+
+    @Column(name = "price", nullable = false)
+    private double price;
+    
     @Column(name = "appointment_datetime", nullable = false)
     private LocalDateTime appointmentDateTime;
 
-    @Column(name = "description")
-    private String description;
+    @Column(name = "status", nullable = false)
+    private String status;
 
-    @Column(name = "status")
-    private String status; // e.g., "SCHEDULED", "COMPLETED", "CANCELLED"
-    
-    // --- NEW FIELD ---
-    @ManyToOne
-    @JoinColumn(name = "scheduled_by_username", nullable = false)
-    private User scheduledBy;
-    
-    // JPA requires a no-arg constructor
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method")
+    private PaymentMethod paymentMethod;
+
     public Appointment() {}
 
-  // --- UPDATED CONSTRUCTOR ---
-    public Appointment(Patient patient, User doctor, LocalDateTime appointmentDateTime, String description, User scheduledBy) {
-        // Validation: Ensure the appointment is with a doctor.
-        if (doctor.getRole() != UserRole.DOCTOR) {
-            throw new IllegalArgumentException("Appointments can only be scheduled with a DOCTOR.");
-        }
+    /**
+     * Final, flexible constructor.
+     * The 'service' parameter is nullable.
+     */
+ public Appointment(Patient patient, User doctor, User scheduledBy, AppointmentType type, String serviceName, double price, LocalDateTime dateTime) {
         this.patient = patient;
-        this.doctor = doctor;
-        this.appointmentDateTime = appointmentDateTime;
-        this.description = description;
-        this.scheduledBy = scheduledBy; // Assign the new field
-        this.status = "SCHEDULED";
+        this.doctor = doctor; // This can now be null
+        this.scheduledBy = scheduledBy;
+        this.type = type;
+        this.serviceName = serviceName;
+        this.price = price;
+        this.appointmentDateTime = dateTime;       
+        this.status = "PENDING_PAYMENT";
+      
     }
 
-    // --- Getters and Setters ---
+    // --- Getters and Setters for all fields ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Patient getPatient() { return patient; }
     public void setPatient(Patient patient) { this.patient = patient; }
     public User getDoctor() { return doctor; }
     public void setDoctor(User doctor) { this.doctor = doctor; }
-    public LocalDateTime getAppointmentDateTime() { return appointmentDateTime; }
-    public void setAppointmentDateTime(LocalDateTime appointmentDateTime) { this.appointmentDateTime = appointmentDateTime; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
     public User getScheduledBy() { return scheduledBy; }
     public void setScheduledBy(User scheduledBy) { this.scheduledBy = scheduledBy; }
+    public MedicalService getMedicalService() { return medicalService; }
+    public void setMedicalService(MedicalService medicalService) { this.medicalService = medicalService; }
+    public AppointmentType getType() { return type; }
+    public void setType(AppointmentType type) { this.type = type; }
+    public String getServiceName() { return serviceName; }
+    public void setServiceName(String serviceName) { this.serviceName = serviceName; }
+    public double getPrice() { return price; }
+    public void setPrice(double price) { this.price = price; }
+    public LocalDateTime getAppointmentDateTime() { return appointmentDateTime; }
+    public void setAppointmentDateTime(LocalDateTime appointmentDateTime) { this.appointmentDateTime = appointmentDateTime; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public PaymentMethod getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
 }

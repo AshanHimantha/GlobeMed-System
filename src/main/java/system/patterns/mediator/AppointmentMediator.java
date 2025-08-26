@@ -2,10 +2,13 @@
 package system.patterns.mediator;
 
 import java.time.LocalDateTime;
+import system.enums.AppointmentType;
+import system.model.MedicalService;
 import system.model.Patient;
 import system.model.User;
 
 
 public interface AppointmentMediator {
-    boolean bookAppointment(Patient patient, User doctor, LocalDateTime dateTime, String description);
+    // This signature must include ALL the data needed to create an appointment.
+    boolean bookAppointment(Patient patient, User doctor, AppointmentType type, LocalDateTime dateTime, MedicalService service);
 }
