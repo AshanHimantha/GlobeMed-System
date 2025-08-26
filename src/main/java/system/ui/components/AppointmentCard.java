@@ -20,6 +20,7 @@ import system.enums.PaymentMethod;
 import system.model.Appointment;
 import system.model.User;
 import system.service.AppointmentService;
+import system.service.AuthenticationService;
 
 /**
  *
@@ -37,14 +38,16 @@ public class AppointmentCard extends javax.swing.JPanel {
         this.appointmentService = new AppointmentService();
     }
 
-   public AppointmentCard(Appointment appointment, Runnable onDataChangeCallback) {
-        this(); // Calls the default constructor to run initComponents()
+ public AppointmentCard(Appointment appointment, Runnable onDataChangeCallback) {
+        initComponents(); // CRITICAL: This must be called first to create UI components.
+        this.appointmentService = new AppointmentService();
         this.appointment = appointment;
         this.onDataChangeCallback = onDataChangeCallback;
-        
+
         setupManualClickHandlers();
         populateData();
     }
+
    
    private void setupManualClickHandlers() {
         // Designer handles 'edit' and 'appointment_status'. We handle labels here.
@@ -66,7 +69,7 @@ public class AppointmentCard extends javax.swing.JPanel {
 
  private void populateData() {
         if (appointment == null) return;
-        
+
         time.setText(appointment.getAppointmentDateTime().format(DateTimeFormatter.ofPattern("HH:mm")));
         date.setText(appointment.getAppointmentDateTime().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")));
         patient_name.setText(appointment.getPatient().getName());
@@ -80,11 +83,12 @@ public class AppointmentCard extends javax.swing.JPanel {
             case SURGERY:
                 User doctor = appointment.getDoctor();
                 drname.setText("Dr. " + (doctor != null ? doctor.getFirstName() + " " + doctor.getLastName() : "N/A"));
-                docicon.setIcon(loadImageIcon(typeEnum == AppointmentType.SURGERY ? "/img/surgery-room" : "/img/stethoscope.png"));
+                // Corrected image paths (ensure your files match these names)
+                docicon.setIcon(loadImageIcon(typeEnum == AppointmentType.SURGERY ? "/img/surgery.png" : "/img/stethoscope.png"));
                 break;
             case DIAGNOSTIC:
                 drname.setText(appointment.getServiceName());
-                docicon.setIcon(loadImageIcon("/img/report_1"));
+                docicon.setIcon(loadImageIcon("/img/microscope.png"));
                 break;
             default:
                 drname.setText(appointment.getServiceName());
@@ -106,98 +110,100 @@ private void updateCardVisualState() {
         if (appointment == null) return;
         String status = appointment.getStatus().toUpperCase();
 
-        // Default state for optional controls
+        pay.setVisible(false);
         edit.setVisible(false);
         cancel.setVisible(false);
-        pay.setVisible(false); // We no longer use the separate 'pay' label
-
         appointment_status.setEnabled(true);
 
         switch (status) {
             case "PENDING_PAYMENT":
                 appointment_status.setText("Process Payment");
-                appointment_status.setToolTipText("Click to process payment for this appointment");
+                appointment_status.setToolTipText("Click to process payment");
                 appointment_status.setBackground(new java.awt.Color(255, 193, 7)); // Orange
                 break;
-            
-            case "PENDING_CONFIRMATION": // <<<--- NEW STATE
+            case "PENDING_CONFIRMATION":
                 appointment_status.setText("Confirm Surgery");
                 appointment_status.setToolTipText("Click to confirm this surgery booking");
-                appointment_status.setBackground(new java.awt.Color(23, 162, 184)); // A Teal/Info color
+                appointment_status.setBackground(new java.awt.Color(23, 162, 184)); // Teal
                 break;
-
             case "SCHEDULED":
                 appointment_status.setText("Mark Complete");
                 appointment_status.setBackground(new java.awt.Color(0, 153, 255)); // Blue
                 edit.setVisible(true);
                 cancel.setVisible(true);
                 break;
-                
-            // ... (Completed and Cancelled cases are the same) ...
+            case "COMPLETED":
+                appointment_status.setText("Completed");
+
+                appointment_status.setBackground(new java.awt.Color(40, 167, 69)); // Green
+                break;
+            case "CANCELLED":
+                appointment_status.setText("Cancelled");
+
+                appointment_status.setBackground(new java.awt.Color(220, 53, 69)); // Red
+                break;
         }
     }
 
 
-private void processPayment() {
-        // 1. Define the options for the user.
-        String[] options = {"CASH", "CARD", "INSURANCE"};
+    private void processPayment() {
+        // 1. Get the currently logged-in user FIRST. If no user, stop the process.
+        User confirmingUser = AuthenticationService.getInstance().getLoggedInUser();
+        if (confirmingUser == null) {
+            JOptionPane.showMessageDialog(this, "Session error: Cannot identify the current user. Please log in again.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
-        // 2. Create a descriptive message for the dialog.
+        // 2. Define the payment options and create the dialog message.
+        String[] options = {"CASH", "CARD", "INSURANCE"};
         String message = String.format(
             "Select payment method for:\n%s\nAmount: $%.2f",
             appointment.getServiceName(),
             appointment.getPrice()
         );
 
-        // 3. Show the option dialog to the user.
+        // 3. Show the option dialog.
         int choice = JOptionPane.showOptionDialog(
-            this,                               // Parent component
-            message,                            // Message to display
-            "Process Payment",                  // Dialog title
-            JOptionPane.DEFAULT_OPTION,         // Option type
-            JOptionPane.PLAIN_MESSAGE,          // Message type
-            null,                               // No custom icon
-            options,                            // The array of button labels
-            options[0]                          // Default button
+            this,
+            message,
+            "Process Payment",
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.PLAIN_MESSAGE,
+            null,
+            options,
+            options[0]
         );
 
         // 4. Process the user's choice.
         if (choice != JOptionPane.CLOSED_OPTION) {
-            // Convert the chosen button index back to a PaymentMethod enum.
             PaymentMethod selectedMethod = PaymentMethod.valueOf(options[choice]);
-            
             boolean success = false;
 
-            // 5. Call the correct service method based on the choice.
-            // Both of these service methods will update the appointment's
-            // status from 'PENDING_PAYMENT' to 'SCHEDULED'.
+            // 5. Call the correct service method, passing the logged-in user.
+            //    This is the corrected logic block.
             if (selectedMethod == PaymentMethod.INSURANCE) {
-                // This method just sets the payment method and status.
-                success = appointmentService.updatePaymentMethodAndStatus(appointment.getId(), selectedMethod, "SCHEDULED");
-            } else { // CASH or CARD
-                // This method also sets the payment method and status.
-                success = appointmentService.processDirectPayment(appointment.getId(), selectedMethod);
+                success = appointmentService.updatePaymentMethodAndStatus(appointment.getId(), selectedMethod, "SCHEDULED", confirmingUser);
+            } else { // For CASH or CARD
+                success = appointmentService.processDirectPayment(appointment.getId(), selectedMethod, confirmingUser);
             }
 
-            // 6. Provide feedback to the user and refresh the UI.
+            // 6. Provide feedback and refresh the UI.
             if (success) {
                 JOptionPane.showMessageDialog(this,
-                    "Payment details updated! The appointment is now confirmed and scheduled.",
+                    "Payment confirmed by " + confirmingUser.getUsername() + ".\nThe appointment is now scheduled.",
                     "Success",
                     JOptionPane.INFORMATION_MESSAGE);
                 
-                // Trigger the callback to tell the parent panel (AppointmentPanel) to reload its data.
                 if (onDataChangeCallback != null) {
                     onDataChangeCallback.run();
                 }
             } else {
                 JOptionPane.showMessageDialog(this,
-                    "Failed to process the payment. Please try again.",
+                    "Failed to process payment. The appointment may have been modified by another user.",
                     "Error",
                     JOptionPane.ERROR_MESSAGE);
             }
         }
-        // If the user closes the dialog, do nothing.
     }
     
     // --- NEW METHOD FOR SURGERY CONFIRMATION ---

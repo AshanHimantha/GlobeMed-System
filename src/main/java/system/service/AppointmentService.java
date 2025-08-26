@@ -156,68 +156,53 @@ public boolean isDoctorAvailable(User doctor, LocalDateTime dateTime) {
         }
     }
     
-    public boolean processDirectPayment(Long appointmentId, PaymentMethod method) {
-        // This method should not be used for insurance claims.
+public boolean processDirectPayment(Long appointmentId, PaymentMethod method, User confirmedByUser) {
         if (method == PaymentMethod.INSURANCE) {
-            System.err.println("processDirectPayment should not be called for INSURANCE.");
             return false;
         }
-
         EntityManager em = PersistenceManager.getInstance().getEntityManager();
         try {
             em.getTransaction().begin();
-
-            // Find the appointment in the database
             Appointment appointment = em.find(Appointment.class, appointmentId);
-
-            // Check if the appointment exists and is in the correct status
             if (appointment != null && "PENDING_PAYMENT".equals(appointment.getStatus())) {
-                
-                // Update the appointment's data
                 appointment.setPaymentMethod(method);
-                appointment.setStatus("SCHEDULED"); // Payment confirms the booking
-                
-                // Save the changes
+                appointment.setStatus("SCHEDULED");
+                appointment.setPaymentConfirmedBy(confirmedByUser); // <-- SET THE USER
                 em.merge(appointment);
                 em.getTransaction().commit();
-                return true; // Success!
-            } else {
-                // If appointment not found or status is not PENDING_PAYMENT, do nothing.
-                em.getTransaction().rollback();
-                return false;
+                return true;
             }
+            em.getTransaction().rollback();
+            return false;
         } catch (Exception e) {
-            if (em.getTransaction().isActive()) {
-                em.getTransaction().rollback();
-            }
+            if (em.getTransaction().isActive()) em.getTransaction().rollback();
             e.printStackTrace();
             return false;
         } finally {
-            if (em != null) {
-                em.close();
-            }
+            if (em != null) em.close();
         }
     }
     
-    public boolean updatePaymentMethodAndStatus(Long appointmentId, PaymentMethod method, String status) {
-    EntityManager em = PersistenceManager.getInstance().getEntityManager();
-    try {
-        em.getTransaction().begin();
-        Appointment appointment = em.find(Appointment.class, appointmentId);
-        if (appointment != null) {
-            appointment.setPaymentMethod(method);
-            appointment.setStatus(status);
-            em.merge(appointment);
-            em.getTransaction().commit();
-            return true;
+  public boolean updatePaymentMethodAndStatus(Long appointmentId, PaymentMethod method, String status, User confirmedByUser) {
+        EntityManager em = PersistenceManager.getInstance().getEntityManager();
+        try {
+            em.getTransaction().begin();
+            Appointment appointment = em.find(Appointment.class, appointmentId);
+            if (appointment != null) {
+                appointment.setPaymentMethod(method);
+                appointment.setStatus(status);
+                appointment.setPaymentConfirmedBy(confirmedByUser); // <-- SET THE USER
+                em.merge(appointment);
+                em.getTransaction().commit();
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) em.getTransaction().rollback();
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (em != null) em.close();
         }
-        return false;
-    } catch (Exception e) {
-        if (em.getTransaction().isActive()) em.getTransaction().rollback();
-        e.printStackTrace();
-        return false;
-    } finally {
-        if (em != null) em.close();
     }
-}
 }

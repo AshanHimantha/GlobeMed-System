@@ -59,6 +59,10 @@ public class Appointment {
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method")
     private PaymentMethod paymentMethod;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_confirmed_by_username") // This will be the new column in the DB
+    private User paymentConfirmedBy;
 
     public Appointment() {}
 
@@ -112,4 +116,6 @@ public Appointment(Patient patient, User doctor, User scheduledBy, AppointmentTy
     public void setStatus(String status) { this.status = status; }
     public PaymentMethod getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
+    public User getPaymentConfirmedBy() { return paymentConfirmedBy; }
+    public void setPaymentConfirmedBy(User paymentConfirmedBy) { this.paymentConfirmedBy = paymentConfirmedBy; }
 }

@@ -12,7 +12,9 @@ import javax.swing.table.DefaultTableModel;
 import system.enums.PaymentMethod;
 import system.model.Appointment;
 import system.model.BillableItem;
+import system.model.User;
 import system.service.AppointmentService;
+import system.service.AuthenticationService;
 import system.service.BillingService;
 
 /**
@@ -213,54 +215,75 @@ public class SurgeryCompletionDialog extends javax.swing.JDialog {
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+
+        // 1. Validate that at least one billable item has been added.
         if (tempBillableItems.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please add at least one billable item before finalizing.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
+        // 2. Open a dialog to ask the user for the payment/billing method.
         String[] options = {"CASH", "CARD", "INSURANCE"};
+        String message = "The total bill is " + jLabel2.getText() + ".\n" + // Assuming jLabel2 shows the total
+                         "Please select how this bill will be handled.";
+                         
         int choice = JOptionPane.showOptionDialog(
-                this,
-                "The total bill is " + jLabel2.getText() + ".\n"
-                + // <-- FIX #1
-                "Please select how this bill will be handled.",
-                "Select Payment / Billing Method",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                options,
-                options[0]
+            this,
+            message,
+            "Select Billing Method",
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            options[0]
         );
 
+        // If the user closes the dialog or clicks cancel, stop the process.
         if (choice == JOptionPane.CLOSED_OPTION) {
             return;
         }
 
+        // 3. Convert the user's choice into a PaymentMethod enum.
         PaymentMethod selectedMethod = PaymentMethod.valueOf(options[choice]);
 
-        boolean itemsSaved = billingService.saveBillableItems(tempBillableItems);
-
-        if (!itemsSaved) {
-            JOptionPane.showMessageDialog(this, "A database error occurred while saving billing items.", "Database Error", JOptionPane.ERROR_MESSAGE);
+        // 4. Get the currently logged-in user who is performing this action.
+        User confirmingUser = AuthenticationService.getInstance().getLoggedInUser();
+        if (confirmingUser == null) {
+            JOptionPane.showMessageDialog(this, "Session error: Cannot identify the current user. Please log in again.", "Authentication Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        boolean appointmentUpdated = appointmentService.updatePaymentMethodAndStatus(appointment.getId(), selectedMethod, "COMPLETED");
+        // 5. Save the billable items to the database first.
+        boolean itemsSaved = billingService.saveBillableItems(tempBillableItems);
+        
+        if (!itemsSaved) {
+            JOptionPane.showMessageDialog(this, "A critical database error occurred while saving the billing items.", "Database Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
+        // 6. Update the main appointment record with the payment method and completed status.
+        // This is the corrected call to the 4-parameter service method.
+        boolean appointmentUpdated = appointmentService.updatePaymentMethodAndStatus(appointment.getId(), selectedMethod, "COMPLETED", confirmingUser);
+
+        // 7. Provide final feedback to the user based on the outcome.
         if (appointmentUpdated) {
-            String successMessage = "Charges saved and surgery marked as COMPLETED.";
-            if (selectedMethod == PaymentMethod.INSURANCE) { // <-- FIX #2
+            String successMessage = "Charges saved and surgery has been marked as COMPLETED.";
+            if (selectedMethod == PaymentMethod.INSURANCE) {
                 successMessage += "\nThe appointment is now ready for an insurance claim to be processed.";
             }
             JOptionPane.showMessageDialog(this, successMessage, "Success", JOptionPane.INFORMATION_MESSAGE);
-
+            
+            // Trigger the callback to refresh the main appointments list.
             if (refreshCallback != null) {
                 refreshCallback.run();
             }
+            
+            // Close this dialog.
             this.dispose();
         } else {
             JOptionPane.showMessageDialog(this, "Failed to update the final appointment status.", "Database Error", JOptionPane.ERROR_MESSAGE);
         }
+    
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
