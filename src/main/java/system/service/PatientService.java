@@ -32,6 +32,21 @@ public class PatientService {
             }
         }
     }
+    
+    public List<Patient> searchPatientsByName(String name, int limit) {
+    EntityManager em = PersistenceManager.getInstance().getEntityManager();
+    try {
+        TypedQuery<Patient> query = em.createQuery(
+            "SELECT p FROM Patient p WHERE p.status = 'ACTIVE' AND LOWER(p.name) LIKE LOWER(:name) ORDER BY p.name", 
+            Patient.class
+        );
+        query.setParameter("name", "%" + name + "%");
+        query.setMaxResults(limit); // Limit the results
+        return query.getResultList();
+    } finally {
+        em.close();
+    }
+}
 
     public Patient addPatient(String name, int age, String gender, String contactNumber, String medicalHistory) {
         EntityManager em = PersistenceManager.getInstance().getEntityManager();
@@ -67,6 +82,8 @@ public class PatientService {
             }
         }
     }
+    
+
 
     public List<Patient> searchPatients(String keyword) {
         EntityManager em = PersistenceManager.getInstance().getEntityManager();
@@ -177,5 +194,14 @@ public class PatientService {
             }
         }
     }
+    
+  public Patient findPatientById(String patientId) {
+    EntityManager em = PersistenceManager.getInstance().getEntityManager();
+    try {
+        return em.find(Patient.class, patientId);
+    } finally {
+        em.close();
+    }
+}
 
 }

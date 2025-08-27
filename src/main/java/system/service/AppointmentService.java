@@ -205,4 +205,27 @@ public boolean processDirectPayment(Long appointmentId, PaymentMethod method, Us
             if (em != null) em.close();
         }
     }
+  
+  public List<Appointment> getTodaysAppointmentsForDoctor(User doctor) {
+    EntityManager em = PersistenceManager.getInstance().getEntityManager();
+    try {
+        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1).minusNanos(1);
+
+        TypedQuery<Appointment> query = em.createQuery(
+            // --- THIS IS THE FIX ---
+            "SELECT a FROM Appointment a WHERE a.doctor = :doctor " +
+            "AND a.status = 'SCHEDULED' " + // Only fetch appointments that are confirmed
+            "AND a.appointmentDateTime BETWEEN :start AND :end ORDER BY a.appointmentDateTime",
+            // --- END OF FIX ---
+            Appointment.class
+        );
+        query.setParameter("doctor", doctor);
+        query.setParameter("start", startOfDay);
+        query.setParameter("end", endOfDay);
+        return query.getResultList();
+    } finally {
+        if (em != null) em.close();
+    }
+  }
 }

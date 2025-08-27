@@ -17,6 +17,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JPanel;
 import system.enums.AppointmentType;
 import system.enums.PaymentMethod;
+import system.enums.UserRole;
 import system.model.Appointment;
 import system.model.User;
 import system.service.AppointmentService;
@@ -31,19 +32,20 @@ public class AppointmentCard extends javax.swing.JPanel {
     private Appointment appointment;
     private final AppointmentService appointmentService;
     private Runnable onDataChangeCallback; // A callback to refresh the parent list
-    
+    private  User currentUser;
     
     public AppointmentCard() {
         initComponents();
         this.appointmentService = new AppointmentService();
     }
 
- public AppointmentCard(Appointment appointment, Runnable onDataChangeCallback) {
-        initComponents(); // CRITICAL: This must be called first to create UI components.
+ public AppointmentCard(Appointment appointment, User currentUser, Runnable onDataChangeCallback) {
+        initComponents();
         this.appointmentService = new AppointmentService();
         this.appointment = appointment;
+        this.currentUser = currentUser; // <<<--- STORE THE LOGGED-IN USER
         this.onDataChangeCallback = onDataChangeCallback;
-
+        
         setupManualClickHandlers();
         populateData();
     }
@@ -107,43 +109,78 @@ public class AppointmentCard extends javax.swing.JPanel {
   
   
 private void updateCardVisualState() {
-        if (appointment == null) return;
-        String status = appointment.getStatus().toUpperCase();
+    if (appointment == null || currentUser == null) return;
 
-        pay.setVisible(false);
-        edit.setVisible(false);
-        cancel.setVisible(false);
-        appointment_status.setEnabled(true);
+    String status = appointment.getStatus().toUpperCase();
+    UserRole role = currentUser.getRole();
+    AppointmentType apptType = appointment.getType();
 
-        switch (status) {
-            case "PENDING_PAYMENT":
-                appointment_status.setText("Process Payment");
-                appointment_status.setToolTipText("Click to process payment");
-                appointment_status.setBackground(new java.awt.Color(255, 193, 7)); // Orange
-                break;
-            case "PENDING_CONFIRMATION":
-                appointment_status.setText("Confirm Surgery");
-                appointment_status.setToolTipText("Click to confirm this surgery booking");
-                appointment_status.setBackground(new java.awt.Color(23, 162, 184)); // Teal
-                break;
-            case "SCHEDULED":
-                appointment_status.setText("Mark Complete");
-                appointment_status.setBackground(new java.awt.Color(0, 153, 255)); // Blue
+    // Default state for all optional controls
+    pay.setVisible(false);
+    edit.setVisible(false);
+    cancel.setVisible(false);
+    appointment_status.setEnabled(true); // Start enabled, then disable if needed
+
+    switch (status) {
+        case "PENDING_PAYMENT":
+            appointment_status.setText("Pending Payment");
+            appointment_status.setEnabled(false);
+            appointment_status.setBackground(new java.awt.Color(255, 193, 7)); // Orange
+            if (role == UserRole.ADMIN || role == UserRole.NURSE) {
+                pay.setVisible(true);
+            }
+            break;
+            
+        case "PENDING_CONFIRMATION":
+            appointment_status.setText("Confirm Surgery");
+            appointment_status.setBackground(new java.awt.Color(23, 162, 184)); // Teal
+            // Only Admins can confirm a surgery
+            if (role != UserRole.ADMIN) {
+                appointment_status.setEnabled(false);
+            }
+            break;
+
+        case "SCHEDULED":
+            appointment_status.setText("Mark Complete");
+            appointment_status.setBackground(new java.awt.Color(0, 153, 255)); // Blue
+
+            // --- THIS IS THE NEW LOGIC ---
+            // Administrative controls are only for Admins/Nurses
+            if (role == UserRole.ADMIN || role == UserRole.NURSE) {
                 edit.setVisible(true);
                 cancel.setVisible(true);
-                break;
-            case "COMPLETED":
-                appointment_status.setText("Completed");
-
-                appointment_status.setBackground(new java.awt.Color(40, 167, 69)); // Green
-                break;
-            case "CANCELLED":
-                appointment_status.setText("Cancelled");
-
-                appointment_status.setBackground(new java.awt.Color(220, 53, 69)); // Red
-                break;
-        }
+            }
+            
+            // Logic for enabling the "Mark Complete" button
+            boolean canMarkComplete = false;
+            if (role == UserRole.DOCTOR && (apptType == AppointmentType.CONSULTATION || apptType == AppointmentType.SURGERY)) {
+                // Doctors can complete Consultations and Surgeries
+                canMarkComplete = true;
+            } else if (role == UserRole.NURSE && apptType == AppointmentType.DIAGNOSTIC) {
+                // Nurses can complete Diagnostics
+                canMarkComplete = true;
+            } else if (role == UserRole.ADMIN) {
+                // Admins can complete anything (override)
+                canMarkComplete = true;
+            }
+            
+            appointment_status.setVisible(canMarkComplete);
+            // --- END OF NEW LOGIC ---
+            break;
+            
+        case "COMPLETED":
+            appointment_status.setText("Completed");
+      
+            appointment_status.setBackground(new java.awt.Color(40, 167, 69)); // Green
+            break;
+            
+        case "CANCELLED":
+            appointment_status.setText("Cancelled");
+         
+            appointment_status.setBackground(new java.awt.Color(220, 53, 69)); // Red
+            break;
     }
+}
 
 
     private void processPayment() {
@@ -495,11 +532,15 @@ private void updateCardVisualState() {
         roundedPanel1Layout.setHorizontalGroup(
             roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(roundedPanel1Layout.createSequentialGroup()
-                .addGap(26, 26, 26)
-                .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(time, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(type, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addGap(28, 28, 28)
+                .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(roundedPanel1Layout.createSequentialGroup()
+                        .addGap(26, 26, 26)
+                        .addComponent(time)
+                        .addGap(28, 28, 28))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, roundedPanel1Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(type, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)))
                 .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(roundedPanel1Layout.createSequentialGroup()
                         .addComponent(date)
@@ -522,25 +563,25 @@ private void updateCardVisualState() {
                 .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(roundedPanel1Layout.createSequentialGroup()
                         .addGap(9, 9, 9)
-                        .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addGroup(roundedPanel1Layout.createSequentialGroup()
+                        .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, roundedPanel1Layout.createSequentialGroup()
                                 .addComponent(patient_name)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addComponent(drname)
                                     .addComponent(docicon))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(type)
-                                    .addComponent(id, javax.swing.GroupLayout.PREFERRED_SIZE, 15, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                            .addGroup(roundedPanel1Layout.createSequentialGroup()
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED))
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, roundedPanel1Layout.createSequentialGroup()
                                 .addComponent(time)
-                                .addGap(19, 19, 19)))
-                        .addComponent(date))
+                                .addGap(4, 4, 4)))
+                        .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(type)
+                            .addComponent(id, javax.swing.GroupLayout.PREFERRED_SIZE, 15, javax.swing.GroupLayout.PREFERRED_SIZE)))
                     .addGroup(roundedPanel1Layout.createSequentialGroup()
                         .addGap(31, 31, 31)
                         .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGap(11, 11, 11))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 7, Short.MAX_VALUE)
+                .addComponent(date))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
