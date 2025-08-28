@@ -537,7 +537,7 @@ public class MainFrame extends javax.swing.JFrame {
         // 2. A central permission map or logic block
         // This could also be implemented using the Strategy pattern for a cleaner design!
         Map<UserRole, List<String>> rolePermissions = new HashMap<>();
-        rolePermissions.put(UserRole.DOCTOR, List.of("DASHBOARD", "PATIENT_RECORDS", "APPOINTMENTS", "PERMISSIONS", "REPORTS"));
+        rolePermissions.put(UserRole.DOCTOR, List.of("APPOINTMENTS","REPORTS"));
         rolePermissions.put(UserRole.NURSE, List.of("DASHBOARD", "PATIENT_RECORDS", "APPOINTMENTS", "PERMISSIONS"));
         rolePermissions.put(UserRole.PHARMACIST, List.of("DASHBOARD", "PATIENT_RECORDS", "PERMISSIONS"));
         rolePermissions.put(UserRole.ADMIN, List.of("DASHBOARD", "APPOINTMENTS", "BILLING", "PERMISSIONS", "REPORTS"));

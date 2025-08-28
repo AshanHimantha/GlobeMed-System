@@ -42,7 +42,7 @@ private final PatientService patientService;
             for (Patient patient : patientList) {
                 // Use the safe date formatter
                 String lastVisit = formatLastVisitDate(patient.getLastVisitDate());
-                jPanel5.add(new PatientCard(patient.getName(), patient.getPatientId(), patient.getAge(), patient.getGender(), lastVisit, patient.getMedicalHistory(),  decypt.decrypt(patient.getContactNumberEncrypted()),this ));
+                jPanel5.add(new PatientCard(patient.getName(), patient.getPatientId(), patient.getAge(), patient.getGender(), lastVisit, decypt.decrypt(patient.getContactNumberEncrypted()),this ));
             }
         }
     }
@@ -77,9 +77,6 @@ private final PatientService patientService;
         jComboBox1 = new javax.swing.JComboBox<>();
         jLabel8 = new javax.swing.JLabel();
         roundedTextField3 = new system.ui.components.RoundedTextField();
-        jLabel9 = new javax.swing.JLabel();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        jTextArea1 = new javax.swing.JTextArea();
         jButton3 = new javax.swing.JButton();
         jPanel4 = new javax.swing.JPanel();
         roundedPanel2 = new system.ui.components.RoundedPanel();
@@ -98,7 +95,7 @@ private final PatientService patientService;
         jPanel1.setBackground(new java.awt.Color(247, 247, 247));
         jPanel1.setMinimumSize(new java.awt.Dimension(900, 700));
         jPanel1.setPreferredSize(new java.awt.Dimension(903, 700));
-        jPanel1.setLayout(new java.awt.CardLayout(10, 0));
+        jPanel1.setLayout(new java.awt.CardLayout());
 
         jSplitPane1.setDividerLocation(360);
         jSplitPane1.setDividerSize(0);
@@ -114,8 +111,8 @@ private final PatientService patientService;
 
         roundedPanel1.setBackground(new java.awt.Color(255, 255, 255));
         roundedPanel1.setForeground(new java.awt.Color(234, 234, 234));
-        roundedPanel1.setMinimumSize(new java.awt.Dimension(330, 600));
-        roundedPanel1.setPreferredSize(new java.awt.Dimension(330, 600));
+        roundedPanel1.setMinimumSize(new java.awt.Dimension(330, 450));
+        roundedPanel1.setPreferredSize(new java.awt.Dimension(330, 450));
 
         jLabel3.setBackground(new java.awt.Color(0, 0, 0));
         jLabel3.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 24)); // NOI18N
@@ -185,26 +182,6 @@ private final PatientService patientService;
             }
         });
 
-        jLabel9.setBackground(new java.awt.Color(51, 51, 51));
-        jLabel9.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 14)); // NOI18N
-        jLabel9.setForeground(new java.awt.Color(51, 51, 51));
-        jLabel9.setText("Medical History");
-
-        jTextArea1.setBackground(new java.awt.Color(249, 249, 249));
-        jTextArea1.setColumns(20);
-        jTextArea1.setFont(new java.awt.Font("Inter", 0, 12)); // NOI18N
-        jTextArea1.setForeground(new java.awt.Color(153, 153, 153));
-        jTextArea1.setRows(1);
-        jTextArea1.setTabSize(1);
-        jTextArea1.setText("Enter Medical History");
-        jTextArea1.setCursor(new java.awt.Cursor(java.awt.Cursor.TEXT_CURSOR));
-        jTextArea1.addFocusListener(new java.awt.event.FocusAdapter() {
-            public void focusGained(java.awt.event.FocusEvent evt) {
-                jTextArea1FocusGained(evt);
-            }
-        });
-        jScrollPane1.setViewportView(jTextArea1);
-
         jButton3.setBackground(new java.awt.Color(0, 153, 255));
         jButton3.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 14)); // NOI18N
         jButton3.setForeground(new java.awt.Color(255, 255, 255));
@@ -223,13 +200,11 @@ private final PatientService patientService;
                 .addGap(19, 19, 19)
                 .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
                     .addComponent(roundedTextField2, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 292, Short.MAX_VALUE)
                     .addComponent(roundedTextField1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jComboBox1, javax.swing.GroupLayout.Alignment.LEADING, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(javax.swing.GroupLayout.Alignment.LEADING, roundedPanel1Layout.createSequentialGroup()
                         .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addComponent(jLabel9, javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel8, javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel7, javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING)
@@ -263,13 +238,9 @@ private final PatientService patientService;
                 .addComponent(jLabel8)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(roundedTextField3, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jLabel9)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 113, Short.MAX_VALUE)
-                .addGap(18, 18, 18)
+                .addGap(19, 19, 19)
                 .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(29, 29, 29))
+                .addContainerGap(27, Short.MAX_VALUE))
         );
 
         roundedTextField2.getAccessibleContext().setAccessibleDescription("");
@@ -343,7 +314,7 @@ private final PatientService patientService;
                             .addComponent(jLabel11)
                             .addGroup(roundedPanel2Layout.createSequentialGroup()
                                 .addComponent(jLabel10)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 364, Short.MAX_VALUE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .addComponent(roundedTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, 309, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE)))
@@ -360,7 +331,7 @@ private final PatientService patientService;
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jLabel11)
                 .addGap(18, 18, 18)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 698, Short.MAX_VALUE)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 594, Short.MAX_VALUE)
                 .addContainerGap())
         );
 
@@ -393,7 +364,7 @@ private final PatientService patientService;
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel2)
                     .addComponent(jLabel1))
-                .addContainerGap(1079, Short.MAX_VALUE))
+                .addContainerGap(692, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -414,7 +385,7 @@ private final PatientService patientService;
         String ageStr = roundedTextField2.getText();
         String gender = (String) jComboBox1.getSelectedItem();
         String contactNo = roundedTextField3.getText();
-        String history = jTextArea1.getText();
+  
 
         // --- B. VALIDATE the input ---
         if (name.isEmpty() || name.equals("Enter Patient name") || ageStr.isEmpty() || ageStr.equals("Enter Age")) {
@@ -435,7 +406,7 @@ private final PatientService patientService;
         }
 
         // --- C. CALL the service to add the patient ---
-        Patient createdPatient = patientService.addPatient(name, age, gender, contactNo, history);
+        Patient createdPatient = patientService.addPatient(name, age, gender, contactNo);
 
         // --- D. PROVIDE FEEDBACK to the user ---
    if (createdPatient != null) {
@@ -474,14 +445,6 @@ private final PatientService patientService;
                 roundedTextField3.setForeground(Color.BLACK);
           }
     }//GEN-LAST:event_roundedTextField3FocusGained
-
-    private void jTextArea1FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jTextArea1FocusGained
-              
-               if(jTextArea1.getText().equals("Enter Medical History")){
-               jTextArea1.setText("");
-                jTextArea1.setForeground(Color.BLACK);
-          }
-    }//GEN-LAST:event_jTextArea1FocusGained
 
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
        
@@ -522,8 +485,6 @@ private void clearFields() {
         roundedTextField2.setForeground(Color.GRAY);
         roundedTextField3.setText("Enter Contact Number");
         roundedTextField3.setForeground(Color.GRAY);
-        jTextArea1.setText("Enter Medical History");
-        jTextArea1.setForeground(Color.GRAY);
         jComboBox1.setSelectedIndex(0);
     }
     
@@ -543,16 +504,13 @@ private void clearFields() {
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
-    private javax.swing.JLabel jLabel9;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JPanel jPanel5;
-    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JSplitPane jSplitPane1;
-    private javax.swing.JTextArea jTextArea1;
     private system.ui.components.RoundedPanel roundedPanel1;
     private system.ui.components.RoundedPanel roundedPanel2;
     private system.ui.components.RoundedTextField roundedTextField1;

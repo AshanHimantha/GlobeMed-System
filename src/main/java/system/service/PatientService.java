@@ -48,7 +48,7 @@ public class PatientService {
     }
 }
 
-    public Patient addPatient(String name, int age, String gender, String contactNumber, String medicalHistory) {
+    public Patient addPatient(String name, int age, String gender, String contactNumber) {
         EntityManager em = PersistenceManager.getInstance().getEntityManager();
         try {
             em.getTransaction().begin();
@@ -61,7 +61,7 @@ public class PatientService {
             String encryptedContact = EncryptionUtil.encrypt(contactNumber);
 
             // 3. Create the new Patient entity
-            Patient newPatient = new Patient(newPatientId, name, age, gender, encryptedContact, medicalHistory, LocalDate.now());
+            Patient newPatient = new Patient(newPatientId, name, age, gender, encryptedContact, LocalDate.now());
 
             // 4. Persist the new entity to the database
             em.persist(newPatient);
@@ -128,7 +128,7 @@ public class PatientService {
         }
     }
 
-    public boolean updatePatientDetails(String patientId, int newAge, String newContactNumber, String newMedicalHistory) {
+    public boolean updatePatientDetails(String patientId, int newAge, String newContactNumber) {
         EntityManager em = PersistenceManager.getInstance().getEntityManager();
         try {
             // Begin the transaction
@@ -144,7 +144,6 @@ public class PatientService {
                 // 3. MODIFY ONLY the specified fields on the fetched object.
                 patientToUpdate.setAge(newAge);
                 patientToUpdate.setContactNumberEncrypted(EncryptionUtil.encrypt(newContactNumber));
-                patientToUpdate.setMedicalHistory(newMedicalHistory);
 
                 // 4. SAVE the updated object back to the database.
                 //    em.merge() will write the changes.

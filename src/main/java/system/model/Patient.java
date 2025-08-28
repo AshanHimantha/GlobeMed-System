@@ -40,8 +40,6 @@ public class Patient {
     private String contactNumberEncrypted;
     // --- END NEW FIELDS ---
 
-    @Column(name = "medical_history", length = 1000)
-    private String medicalHistory;
     
     @Column(name = "last_visit_date")
     private LocalDate lastVisitDate;
@@ -49,13 +47,12 @@ public class Patient {
     public Patient() {}
 
     // Updated constructor
-    public Patient(String patientId, String name, int age, String gender, String contactNumberEncrypted, String medicalHistory, LocalDate lastVisitDate) {
+    public Patient(String patientId, String name, int age, String gender, String contactNumberEncrypted, LocalDate lastVisitDate) {
         this.patientId = patientId;
         this.name = name;
         this.age = age;
         this.gender = gender;
         this.contactNumberEncrypted = contactNumberEncrypted;
-        this.medicalHistory = medicalHistory;
         this.registeredDate = LocalDate.now(); // Automatically set to the creation date
         this.status = PatientStatus.ACTIVE;
     }
@@ -76,9 +73,8 @@ public class Patient {
     public void setPatientId(String patientId) { this.patientId = patientId; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-    public String getMedicalHistory() { return medicalHistory; }
-    public void setMedicalHistory(String medicalHistory) { this.medicalHistory = medicalHistory; }
-    
+
+
      public LocalDate getRegisteredDate() { return registeredDate; }
     public void setRegisteredDate(LocalDate registeredDate) { this.registeredDate = registeredDate; }
     public PatientStatus getStatus() { return status; }
