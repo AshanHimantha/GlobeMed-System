@@ -1,8 +1,9 @@
-
 package system.patterns.mediator;
 
 import java.time.LocalDateTime;
+import system.enums.AppointmentType;
 import system.model.Appointment;
+import system.model.MedicalService;
 import system.model.Patient;
 import system.model.User;
 import system.service.AppointmentService;
@@ -12,49 +13,58 @@ import system.service.AuthenticationService;
  *
  * @author User
  */
-public class AppointmentScheduler implements AppointmentMediator{
+public class AppointmentScheduler implements AppointmentMediator {
+
     private final AppointmentService appointmentService;
     private final AuthenticationService authenticationService;
 
     public AppointmentScheduler() {
         this.appointmentService = new AppointmentService();
-        this.authenticationService = AuthenticationService.getInstance(); // Get the singleton
+        this.authenticationService = AuthenticationService.getInstance();
     }
 
     @Override
-    public boolean bookAppointment(Patient patient, User doctor, LocalDateTime dateTime, String description) {
-        // --- This is the core coordination logic ---
-        
-        // 1. Get the user who is currently logged in (the one scheduling the appointment)
+    public boolean bookAppointment(Patient patient, User doctor, AppointmentType type, LocalDateTime dateTime, MedicalService service) {
+
         User scheduledBy = authenticationService.getLoggedInUser();
-        if (scheduledBy == null) {
-            System.err.println("MEDIATOR LOG: No user logged in. Cannot schedule appointment.");
-            return false;
+        if (scheduledBy == null) { /* handle error */ return false; }
+        if (doctor != null && !appointmentService.isDoctorAvailable(doctor, dateTime)) { /* handle error */ return false; }
+
+        double price = 0.0;
+        String serviceName = "";
+
+        switch (type) {
+            case CONSULTATION:
+                if (doctor == null || doctor.getConsultationFee() == null) { return false; }
+                price = doctor.getConsultationFee();
+                serviceName = "Consultation with Dr. " + doctor.getLastName();
+                break;
+
+            case DIAGNOSTIC:
+                // --- THIS IS THE FIX ---
+                if (service == null) {
+                    System.err.println("MEDIATOR: Cannot book Diagnostic without a specific service.");
+                    return false;
+                }
+                // Get the name and price from the service object passed from the UI
+                serviceName = service.getName();
+                price = service.getBasePrice();
+                break;
+                // --- END OF FIX ---
+
+            case SURGERY:
+                if (doctor == null) { return false; }
+                serviceName = "Surgical Procedure with Dr. " + doctor.getLastName();
+                price = 0.00; // Price determined later
+                break;
         }
 
-        // 2. Check for business rule: Doctor availability
-        if (!appointmentService.isDoctorAvailable(doctor, dateTime)) {
-            System.err.println("MEDIATOR LOG: Conflict detected. Dr. " + doctor.getLastName() + " is not available at this time.");
-            return false;
-        }
-        
-        // 3. (Future) Other checks could go here:
-        //    - Check if the clinic is open at this time.
-        //    - Check if the patient has any outstanding bills.
+        System.out.println("MEDIATOR: Price determined as $" + price);
 
-        // 4. If all checks pass, proceed to create the appointment.
-        System.out.println("MEDIATOR LOG: All checks passed. Creating appointment...");
-        Appointment newAppointment = appointmentService.createAppointment(patient, doctor, dateTime, description, scheduledBy);
-        
-        if (newAppointment != null) {
-            // 5. (Future) Notify relevant parties (e.g., send an email notification).
-            //    - NotificationService.sendConfirmation(patient, newAppointment);
-            //    - NotificationService.sendNewBookingAlert(doctor, newAppointment);
-            System.out.println("MEDIATOR LOG: Appointment created successfully (ID: " + newAppointment.getId() + ")");
-            return true;
-        } else {
-            System.err.println("MEDIATOR LOG: Failed to save the appointment to the database.");
-            return false;
-        }
+        Appointment createdAppointment = appointmentService.createAppointment(
+            patient, doctor, scheduledBy, type, serviceName, price, dateTime
+        );
+
+        return createdAppointment != null;
     }
 }

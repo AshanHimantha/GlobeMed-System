@@ -1,13 +1,12 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
 package system.service;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import java.time.LocalDateTime;
 import java.util.List;
+import system.enums.AppointmentType;
+import system.enums.PaymentMethod;
 import system.model.Appointment;
 import system.model.Patient;
 import system.model.User;
@@ -17,44 +16,17 @@ import system.model.User;
  * @author User
  */
 public class AppointmentService {
-    /**
-     * Checks if doctor is available at the specified time with a 10-minute buffer
-     * @param doctor The doctor to check availability for
-     * @param dateTime The requested appointment time
-     * @return true if doctor is available (no appointments within 10 minutes), false otherwise
-     */
-    public boolean isDoctorAvailable(User doctor, LocalDateTime dateTime) {
-        EntityManager em = PersistenceManager.getInstance().getEntityManager();
-        try {
-            // Check for appointments within 10 minutes before and after the requested time
-            LocalDateTime startBuffer = dateTime.minusMinutes(10);
-            LocalDateTime endBuffer = dateTime.plusMinutes(10);
 
-            TypedQuery<Long> query = em.createQuery(
-                "SELECT COUNT(a) FROM Appointment a WHERE a.doctor = :doctor " +
-                "AND a.appointmentDateTime BETWEEN :startBuffer AND :endBuffer " +
-                "AND a.status = 'SCHEDULED'",
-                Long.class
-            );
-            query.setParameter("doctor", doctor);
-            query.setParameter("startBuffer", startBuffer);
-            query.setParameter("endBuffer", endBuffer);
 
-            return query.getSingleResult() == 0;
-        } finally {
-            em.close();
-        }
-    }
-
-    /**
-     * Creates and saves a new appointment to the database.
-     * @return The created Appointment object, or null on failure.
-     */
-    public Appointment createAppointment(Patient patient, User doctor, LocalDateTime dateTime, String description, User scheduledBy) {
+public Appointment createAppointment(Patient patient, User doctor, User scheduledBy, AppointmentType type, String serviceName, double price, LocalDateTime dateTime) {
         EntityManager em = PersistenceManager.getInstance().getEntityManager();
         try {
             em.getTransaction().begin();
-            Appointment newAppointment = new Appointment(patient, doctor, dateTime, description, scheduledBy);
+            
+            // --- THIS IS THE FIX ---
+            // Now calling the correct 7-parameter constructor.
+            Appointment newAppointment = new Appointment(patient, doctor, scheduledBy, type, serviceName, price, dateTime);
+            
             em.persist(newAppointment);
             em.getTransaction().commit();
             return newAppointment;
@@ -65,93 +37,60 @@ public class AppointmentService {
             e.printStackTrace();
             return null;
         } finally {
-            em.close();
+            if (em != null) {
+                em.close();
+            }
         }
     }
-    
+
     /**
-     * Gets all SCHEDULED appointments for a specific doctor.
+     * Checks if a specific doctor is available at a given time with a 10-minute buffer.
      */
-    public List<Appointment> getAppointmentsForDoctor(User doctor) {
+public boolean isDoctorAvailable(User doctor, LocalDateTime dateTime) {
+    EntityManager em = PersistenceManager.getInstance().getEntityManager();
+    try {
+        LocalDateTime startBuffer = dateTime.minusMinutes(10);
+        LocalDateTime endBuffer = dateTime.plusMinutes(10);
+
+        TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(a) FROM Appointment a WHERE a.doctor = :doctor " +
+            "AND a.appointmentDateTime BETWEEN :startBuffer AND :endBuffer " +
+            // --- THIS IS THE FIX ---
+            "AND (a.status = 'SCHEDULED' OR a.status = 'PENDING_PAYMENT')", // Check both statuses
+            Long.class
+        );
+        query.setParameter("doctor", doctor);
+        query.setParameter("startBuffer", startBuffer);
+        query.setParameter("endBuffer", endBuffer);
+
+        return query.getSingleResult() == 0;
+    } finally {
+        em.close();
+    }
+}
+    /**
+     * Finds and returns a list of appointments that conflict with a given time slot.
+     */
+    public List<Appointment> getConflictingAppointments(User doctor, LocalDateTime dateTime) {
         EntityManager em = PersistenceManager.getInstance().getEntityManager();
         try {
+            LocalDateTime startBuffer = dateTime.minusMinutes(10);
+            LocalDateTime endBuffer = dateTime.plusMinutes(10);
             TypedQuery<Appointment> query = em.createQuery(
-                "SELECT a FROM Appointment a WHERE a.doctor = :doctor AND a.status = 'SCHEDULED' ORDER BY a.appointmentDateTime",
-                Appointment.class
-            );
+                "SELECT a FROM Appointment a WHERE a.doctor = :doctor " +
+                "AND a.appointmentDateTime BETWEEN :startBuffer AND :endBuffer " +
+                "AND a.status = 'SCHEDULED'", Appointment.class);
             query.setParameter("doctor", doctor);
+            query.setParameter("startBuffer", startBuffer);
+            query.setParameter("endBuffer", endBuffer);
             return query.getResultList();
         } finally {
-            em.close();
+            if (em != null) em.close();
         }
     }
 
     /**
-     * Gets all appointments ordered by date and time.
-     */
-    public List<Appointment> getAllAppointments() {
-        EntityManager em = PersistenceManager.getInstance().getEntityManager();
-        try {
-            TypedQuery<Appointment> query = em.createQuery(
-                "SELECT a FROM Appointment a ORDER BY a.appointmentDateTime DESC",
-                Appointment.class
-            );
-            return query.getResultList();
-        } finally {
-            em.close();
-        }
-    }
-
-    /**
-     * Gets appointments for today.
-     */
-    public List<Appointment> getTodaysAppointments() {
-        EntityManager em = PersistenceManager.getInstance().getEntityManager();
-        try {
-            LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
-            LocalDateTime endOfDay = startOfDay.plusDays(1).minusSeconds(1);
-
-            TypedQuery<Appointment> query = em.createQuery(
-                "SELECT a FROM Appointment a WHERE a.appointmentDateTime BETWEEN :start AND :end ORDER BY a.appointmentDateTime",
-                Appointment.class
-            );
-            query.setParameter("start", startOfDay);
-            query.setParameter("end", endOfDay);
-            return query.getResultList();
-        } finally {
-            em.close();
-        }
-    }
-
-    /**
-     * Updates appointment status.
-     */
-    public boolean updateAppointmentStatus(Long appointmentId, String status) {
-        EntityManager em = PersistenceManager.getInstance().getEntityManager();
-        try {
-            em.getTransaction().begin();
-            Appointment appointment = em.find(Appointment.class, appointmentId);
-            if (appointment != null) {
-                appointment.setStatus(status);
-                em.merge(appointment);
-                em.getTransaction().commit();
-                return true;
-            }
-            em.getTransaction().rollback();
-            return false;
-        } catch (Exception e) {
-            if (em.getTransaction().isActive()) {
-                em.getTransaction().rollback();
-            }
-            e.printStackTrace();
-            return false;
-        } finally {
-            em.close();
-        }
-    }
-
-    /**
-     * Updates appointment time.
+     * Updates the date and time of a specific appointment.
      */
     public boolean updateAppointmentTime(Long appointmentId, LocalDateTime newDateTime) {
         EntityManager em = PersistenceManager.getInstance().getEntityManager();
@@ -164,45 +103,129 @@ public class AppointmentService {
                 em.getTransaction().commit();
                 return true;
             }
-            em.getTransaction().rollback();
-            return false;
+            return false; // Appointment not found
         } catch (Exception e) {
-            if (em.getTransaction().isActive()) {
-                em.getTransaction().rollback();
-            }
+            if (em.getTransaction().isActive()) em.getTransaction().rollback();
             e.printStackTrace();
             return false;
         } finally {
-            em.close();
+            if (em != null) em.close();
         }
     }
 
     /**
-     * Gets conflicting appointments within 10 minutes of the specified time
-     * @param doctor The doctor to check
-     * @param dateTime The requested appointment time
-     * @return List of conflicting appointments
+     * Updates the status of a specific appointment.
      */
-    public List<Appointment> getConflictingAppointments(User doctor, LocalDateTime dateTime) {
+    public boolean updateAppointmentStatus(Long appointmentId, String status) {
         EntityManager em = PersistenceManager.getInstance().getEntityManager();
         try {
-            LocalDateTime startBuffer = dateTime.minusMinutes(10);
-            LocalDateTime endBuffer = dateTime.plusMinutes(10);
-
-            TypedQuery<Appointment> query = em.createQuery(
-                "SELECT a FROM Appointment a WHERE a.doctor = :doctor " +
-                "AND a.appointmentDateTime BETWEEN :startBuffer AND :endBuffer " +
-                "AND a.status = 'SCHEDULED' " +
-                "ORDER BY a.appointmentDateTime",
-                Appointment.class
-            );
-            query.setParameter("doctor", doctor);
-            query.setParameter("startBuffer", startBuffer);
-            query.setParameter("endBuffer", endBuffer);
-
-            return query.getResultList();
+            em.getTransaction().begin();
+            Appointment appointment = em.find(Appointment.class, appointmentId);
+            if (appointment != null) {
+                appointment.setStatus(status);
+                em.merge(appointment);
+                em.getTransaction().commit();
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) em.getTransaction().rollback();
+            e.printStackTrace();
+            return false;
         } finally {
-            em.close();
+            if (em != null) em.close();
         }
     }
+
+    /**
+     * Gets all appointments for today.
+     */
+    public List<Appointment> getTodaysAppointments() {
+        EntityManager em = PersistenceManager.getInstance().getEntityManager();
+        try {
+            LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
+            LocalDateTime endOfDay = startOfDay.plusDays(1).minusNanos(1);
+            TypedQuery<Appointment> query = em.createQuery(
+                "SELECT a FROM Appointment a WHERE a.appointmentDateTime BETWEEN :start AND :end ORDER BY a.appointmentDateTime",
+                Appointment.class);
+            query.setParameter("start", startOfDay);
+            query.setParameter("end", endOfDay);
+            return query.getResultList();
+        } finally {
+            if (em != null) em.close();
+        }
+    }
+    
+public boolean processDirectPayment(Long appointmentId, PaymentMethod method, User confirmedByUser) {
+        if (method == PaymentMethod.INSURANCE) {
+            return false;
+        }
+        EntityManager em = PersistenceManager.getInstance().getEntityManager();
+        try {
+            em.getTransaction().begin();
+            Appointment appointment = em.find(Appointment.class, appointmentId);
+            if (appointment != null && "PENDING_PAYMENT".equals(appointment.getStatus())) {
+                appointment.setPaymentMethod(method);
+                appointment.setStatus("SCHEDULED");
+                appointment.setPaymentConfirmedBy(confirmedByUser); // <-- SET THE USER
+                em.merge(appointment);
+                em.getTransaction().commit();
+                return true;
+            }
+            em.getTransaction().rollback();
+            return false;
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) em.getTransaction().rollback();
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (em != null) em.close();
+        }
+    }
+    
+  public boolean updatePaymentMethodAndStatus(Long appointmentId, PaymentMethod method, String status, User confirmedByUser) {
+        EntityManager em = PersistenceManager.getInstance().getEntityManager();
+        try {
+            em.getTransaction().begin();
+            Appointment appointment = em.find(Appointment.class, appointmentId);
+            if (appointment != null) {
+                appointment.setPaymentMethod(method);
+                appointment.setStatus(status);
+                appointment.setPaymentConfirmedBy(confirmedByUser); // <-- SET THE USER
+                em.merge(appointment);
+                em.getTransaction().commit();
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) em.getTransaction().rollback();
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (em != null) em.close();
+        }
+    }
+  
+  public List<Appointment> getTodaysAppointmentsForDoctor(User doctor) {
+    EntityManager em = PersistenceManager.getInstance().getEntityManager();
+    try {
+        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1).minusNanos(1);
+
+        TypedQuery<Appointment> query = em.createQuery(
+            // --- THIS IS THE FIX ---
+            "SELECT a FROM Appointment a WHERE a.doctor = :doctor " +
+            "AND a.status = 'SCHEDULED' " + // Only fetch appointments that are confirmed
+            "AND a.appointmentDateTime BETWEEN :start AND :end ORDER BY a.appointmentDateTime",
+            // --- END OF FIX ---
+            Appointment.class
+        );
+        query.setParameter("doctor", doctor);
+        query.setParameter("start", startOfDay);
+        query.setParameter("end", endOfDay);
+        return query.getResultList();
+    } finally {
+        if (em != null) em.close();
+    }
+  }
 }

@@ -16,7 +16,7 @@ public class UpdatePatientForm extends javax.swing.JFrame {
     private final PatientService patientService;
     private final PatientRecordPanel parentPanel;
 
-    public UpdatePatientForm(String name, String id, int age, String gender, String lastVisit, String history, String contact, PatientRecordPanel parent) {
+    public UpdatePatientForm(String name, String id, int age, String gender, String lastVisit, String contact, PatientRecordPanel parent) {
         initComponents();
 
         patientToUpdate = new Patient();
@@ -24,7 +24,6 @@ public class UpdatePatientForm extends javax.swing.JFrame {
 
         patientToUpdate.setAge(age);
         patientToUpdate.setPatientId(id);
-        patientToUpdate.setMedicalHistory(history);
         patientToUpdate.setContactNumberEncrypted(contact);
 
         this.patientService = new PatientService();
@@ -34,7 +33,7 @@ public class UpdatePatientForm extends javax.swing.JFrame {
         roundedTextField1.setEnabled(false);
         roundedTextField2.setText(String.valueOf(age));
         roundedTextField3.setText(contact);
-        jTextArea1.setText(history);
+
 
         this.setTitle("Edit Patient Info");
         Image icon = Toolkit.getDefaultToolkit().getImage("src/main/resources/img/icon.png");
@@ -48,11 +47,8 @@ public class UpdatePatientForm extends javax.swing.JFrame {
 
         jPanel1 = new javax.swing.JPanel();
         jLabel3 = new javax.swing.JLabel();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        jTextArea1 = new javax.swing.JTextArea();
         roundedTextField2 = new system.ui.components.RoundedTextField();
         jLabel6 = new javax.swing.JLabel();
-        jLabel9 = new javax.swing.JLabel();
         roundedTextField1 = new system.ui.components.RoundedTextField();
         roundedTextField3 = new system.ui.components.RoundedTextField();
         jLabel4 = new javax.swing.JLabel();
@@ -71,24 +67,8 @@ public class UpdatePatientForm extends javax.swing.JFrame {
         jLabel3.setForeground(new java.awt.Color(0, 0, 0));
         jLabel3.setText("Edit Patient");
 
-        jTextArea1.setBackground(new java.awt.Color(249, 249, 249));
-        jTextArea1.setColumns(20);
-        jTextArea1.setFont(new java.awt.Font("Inter", 0, 12)); // NOI18N
-        jTextArea1.setForeground(new java.awt.Color(51, 51, 51));
-        jTextArea1.setRows(1);
-        jTextArea1.setTabSize(1);
-        jTextArea1.setText("Enter Medical History");
-        jTextArea1.setCursor(new java.awt.Cursor(java.awt.Cursor.TEXT_CURSOR));
-        jTextArea1.addFocusListener(new java.awt.event.FocusAdapter() {
-            public void focusGained(java.awt.event.FocusEvent evt) {
-                jTextArea1FocusGained(evt);
-            }
-        });
-        jScrollPane1.setViewportView(jTextArea1);
-
         roundedTextField2.setBackground(new java.awt.Color(249, 249, 249));
         roundedTextField2.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 10, 1, 1));
-        roundedTextField2.setForeground(new java.awt.Color(51, 51, 51));
         roundedTextField2.setText("Enter Age");
         roundedTextField2.setFont(new java.awt.Font("Inter", 0, 12)); // NOI18N
         roundedTextField2.setMargin(new java.awt.Insets(2, 20, 2, 20));
@@ -103,14 +83,8 @@ public class UpdatePatientForm extends javax.swing.JFrame {
         jLabel6.setForeground(new java.awt.Color(51, 51, 51));
         jLabel6.setText("Age");
 
-        jLabel9.setBackground(new java.awt.Color(51, 51, 51));
-        jLabel9.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 14)); // NOI18N
-        jLabel9.setForeground(new java.awt.Color(51, 51, 51));
-        jLabel9.setText("Medical History");
-
         roundedTextField1.setBackground(new java.awt.Color(249, 249, 249));
         roundedTextField1.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 10, 1, 1));
-        roundedTextField1.setForeground(new java.awt.Color(51, 51, 51));
         roundedTextField1.setText("Enter Patient name");
         roundedTextField1.setToolTipText("");
         roundedTextField1.setFont(new java.awt.Font("Inter", 0, 12)); // NOI18N
@@ -123,7 +97,6 @@ public class UpdatePatientForm extends javax.swing.JFrame {
 
         roundedTextField3.setBackground(new java.awt.Color(249, 249, 249));
         roundedTextField3.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 10, 1, 1));
-        roundedTextField3.setForeground(new java.awt.Color(51, 51, 51));
         roundedTextField3.setText("Enter Contact Number");
         roundedTextField3.setFont(new java.awt.Font("Inter", 0, 12)); // NOI18N
         roundedTextField3.setMargin(new java.awt.Insets(2, 20, 2, 20));
@@ -162,30 +135,33 @@ public class UpdatePatientForm extends javax.swing.JFrame {
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 363, Short.MAX_VALUE)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, 351, Short.MAX_VALUE)
+                .addContainerGap())
             .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(jPanel1Layout.createSequentialGroup()
                     .addContainerGap()
                     .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                        .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(roundedTextField2, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
                         .addComponent(roundedTextField1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
                         .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel1Layout.createSequentialGroup()
                             .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                .addComponent(jLabel9, javax.swing.GroupLayout.Alignment.LEADING)
                                 .addComponent(jLabel8, javax.swing.GroupLayout.Alignment.LEADING)
                                 .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING)
                                 .addComponent(jLabel5, javax.swing.GroupLayout.Alignment.LEADING)
                                 .addComponent(jLabel4, javax.swing.GroupLayout.Alignment.LEADING)
                                 .addComponent(jLabel3, javax.swing.GroupLayout.Alignment.LEADING))
                             .addGap(0, 0, Short.MAX_VALUE))
-                        .addComponent(roundedTextField3, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-                        .addComponent(jScrollPane1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 351, Short.MAX_VALUE))
+                        .addComponent(roundedTextField3, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
                     .addContainerGap()))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 622, Short.MAX_VALUE)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+                .addContainerGap(299, Short.MAX_VALUE)
+                .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
             .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(jPanel1Layout.createSequentialGroup()
                     .addContainerGap()
@@ -204,13 +180,7 @@ public class UpdatePatientForm extends javax.swing.JFrame {
                     .addComponent(jLabel8)
                     .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                     .addComponent(roundedTextField3, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                    .addComponent(jLabel9)
-                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 248, Short.MAX_VALUE)
-                    .addGap(18, 18, 18)
-                    .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addContainerGap()))
+                    .addContainerGap(67, Short.MAX_VALUE)))
         );
 
         getContentPane().add(jPanel1);
@@ -240,19 +210,11 @@ public class UpdatePatientForm extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_roundedTextField3FocusGained
 
-    private void jTextArea1FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jTextArea1FocusGained
-
-        if (jTextArea1.getText().equals("Enter Medical History")) {
-            jTextArea1.setText("");
-            jTextArea1.setForeground(Color.BLACK);
-        }
-    }//GEN-LAST:event_jTextArea1FocusGained
-
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
 
         String ageStr = roundedTextField2.getText();
         String contactNo = roundedTextField3.getText();
-        String history = jTextArea1.getText();
+
 
         // --- 2. VALIDATE the input ---
         if (ageStr.isEmpty()) {
@@ -277,7 +239,7 @@ public class UpdatePatientForm extends javax.swing.JFrame {
         }
 
         // --- 4. CALL the service to save changes to the database ---
-        boolean success = patientService.updatePatientDetails(patientToUpdate.getPatientId(), Integer.parseInt(ageStr), contactNo, history);
+        boolean success = patientService.updatePatientDetails(patientToUpdate.getPatientId(), Integer.parseInt(ageStr), contactNo);
 
         // --- 5. PROVIDE FEEDBACK, refresh parent, and close this form ---
         if (success) {
@@ -298,10 +260,7 @@ public class UpdatePatientForm extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel8;
-    private javax.swing.JLabel jLabel9;
     private javax.swing.JPanel jPanel1;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JTextArea jTextArea1;
     private system.ui.components.RoundedTextField roundedTextField1;
     private system.ui.components.RoundedTextField roundedTextField2;
     private system.ui.components.RoundedTextField roundedTextField3;

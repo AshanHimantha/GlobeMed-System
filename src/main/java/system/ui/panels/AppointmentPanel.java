@@ -5,6 +5,9 @@
 package system.ui.panels;
 
 
+import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -12,15 +15,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import javax.swing.BorderFactory;
 import javax.swing.JOptionPane;
-import javax.swing.JSpinner;
-import javax.swing.SpinnerDateModel;
+import javax.swing.Timer;
+import system.enums.AppointmentType;
+import system.enums.UserRole;
 import system.model.Appointment;
+import system.model.MedicalService;
 import system.model.Patient;
 import system.model.User;
 import system.patterns.mediator.AppointmentMediator;
 import system.patterns.mediator.AppointmentScheduler;
 import system.service.AppointmentService;
+import system.service.AuthenticationService;
+import system.service.MedicalServiceService;
 import system.service.PatientService;
 import system.service.UserService;
 import system.ui.components.AppointmentCard;
@@ -37,178 +45,298 @@ public class AppointmentPanel extends javax.swing.JPanel {
     private final UserService userService;
     private final AppointmentService appointmentService;
     private final AppointmentMediator appointmentMediator;
-
-    // --- Data Maps for Lookup ---
+    private final MedicalServiceService medicalServiceService;
     private Map<String, Patient> patientMap;
     private Map<String, User> doctorMap;
-    
-    public AppointmentPanel() {
-        initComponents(); // This initializes all the UI components from the designer
+    private Map<String, MedicalService> serviceMap;
+    private Timer refreshTimer;
+    private system.ui.components.SearchDropdown serviceSearchDropdown; // Add missing field
 
-        // --- Initialize Services and Mediator AFTER initComponents ---
-        this.patientService = new PatientService();
+    public AppointmentPanel() {
+        // Initialize the missing serviceSearchDropdown component BEFORE initComponents
+        serviceSearchDropdown = new system.ui.components.SearchDropdown();
+
+        initComponents();
+        
+       this.patientService = new PatientService();
         this.userService = new UserService();
         this.appointmentService = new AppointmentService();
         this.appointmentMediator = new AppointmentScheduler();
+        this.medicalServiceService = new MedicalServiceService();
         this.patientMap = new HashMap<>();
         this.doctorMap = new HashMap<>();
-
-        // Configure the date/time picker
+        this.serviceMap = new HashMap<>();
+        
+        configureUIForRole();
         configureDateTimePicker();
-
-        // Load data into the dropdowns
-        loadPatientData();
-        loadDoctorData();
-        
-        // Load today's appointments
-        loadTodaysAppointments();
-
-        // Update today's date label
         updateTodayLabel();
+        onAppointmentTypeChange();
+        setupSearchListeners();
+        loadTodaysAppointments();
+        startAutoRefresh();
     }
 
-    private void configureDateTimePicker() {
-        // Set default date/time to current time
-        dateTimePicker1.setDateTimePermissive(LocalDateTime.now().plusHours(1));
-    }
+    
+    private void startAutoRefresh() {
+        // Set the refresh interval in milliseconds (e.g., 30000 ms = 30 seconds)
+        int refreshInterval = 30000; 
 
-    private void loadPatientData() {
-        List<Patient> patients = patientService.getAllPatients();
-        this.patientMap = patients.stream()
-                .collect(Collectors.toMap(p -> p.getPatientId() + " - " + p.getName(), p -> p));
-        List<String> patientDisplayNames = new ArrayList<>(patientMap.keySet());
-        
-        searchDropdown2.setItems(patientDisplayNames);
-    }
+        // Create the ActionListener that will be executed by the timer
+        ActionListener refreshAction = new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("TIMER: Auto-refreshing appointment list...");
+                // The timer's action is to simply call our existing data loading method
+                loadTodaysAppointments();
+            }
+        };
+         
 
-    private void loadDoctorData() {
-        List<User> doctors = userService.getAllDoctors();
-        this.doctorMap = doctors.stream()
-                .collect(Collectors.toMap(d -> "Dr. " + d.getFirstName() + " " + d.getLastName(), d -> d));
-        List<String> doctorDisplayNames = new ArrayList<>(doctorMap.keySet());
-
-        searchDropdown1.setItems(doctorDisplayNames);
+        // Create and start the timer
+        refreshTimer = new Timer(refreshInterval, refreshAction);
+        refreshTimer.setInitialDelay(0); // Fire the first time immediately (optional, but good for initial load)
+        refreshTimer.start();
+        System.out.println("Auto-refresh timer started. Interval: " + refreshInterval / 1000 + " seconds.");
     }
     
-    private void loadTodaysAppointments() {
-        List<Appointment> todaysAppointments = appointmentService.getTodaysAppointments();
-        populateAppointmentsList(todaysAppointments);
+    private void setupSearchListeners() {
+        searchDropdown1.addSearchListener(query -> {
+            List<User> doctors = userService.searchDoctorsByName(query, 20);
+            // Preserve existing selected items while updating the map
+            Map<String, User> newDoctorMap = doctors.stream()
+                .collect(Collectors.toMap(d -> "Dr. " + d.getFirstName() + " " + d.getLastName(), d -> d));
+
+            // Preserve any currently selected doctor that might not be in the new search results
+            if (searchDropdown1.getSelectedItem() != null && doctorMap.containsKey(searchDropdown1.getSelectedItem())) {
+                newDoctorMap.putIfAbsent(searchDropdown1.getSelectedItem(), doctorMap.get(searchDropdown1.getSelectedItem()));
+            }
+
+            doctorMap = newDoctorMap;
+            searchDropdown1.setPopupItems(new ArrayList<>(doctors.stream()
+                .map(d -> "Dr. " + d.getFirstName() + " " + d.getLastName())
+                .collect(Collectors.toList())));
+        });
+
+        searchDropdown2.addSearchListener(query -> {
+            List<Patient> patients = patientService.searchPatientsByName(query, 20);
+            // Preserve existing selected items while updating the map
+            Map<String, Patient> newPatientMap = patients.stream()
+                .collect(Collectors.toMap(p -> p.getPatientId() + " - " + p.getName(), p -> p));
+
+            // Preserve any currently selected patient that might not be in the new search results
+            if (searchDropdown2.getSelectedItem() != null && patientMap.containsKey(searchDropdown2.getSelectedItem())) {
+                newPatientMap.putIfAbsent(searchDropdown2.getSelectedItem(), patientMap.get(searchDropdown2.getSelectedItem()));
+            }
+
+            patientMap = newPatientMap;
+            searchDropdown2.setPopupItems(new ArrayList<>(patients.stream()
+                .map(p -> p.getPatientId() + " - " + p.getName())
+                .collect(Collectors.toList())));
+        });
+        
+        // Add search listener for medical services
+        serviceSearchDropdown.addSearchListener(query -> {
+            List<MedicalService> filteredServices = medicalServiceService.getAllServices().stream()
+                .filter(s -> s.getType() == AppointmentType.DIAGNOSTIC)
+                .filter(s -> s.getName().toLowerCase().contains(query.toLowerCase()))
+                .collect(Collectors.toList());
+
+            // Preserve existing selected items while updating the map
+            Map<String, MedicalService> newServiceMap = filteredServices.stream()
+                .collect(Collectors.toMap(MedicalService::getName, s -> s));
+
+            // Preserve any currently selected service that might not be in the new search results
+            if (serviceSearchDropdown.getSelectedItem() != null && serviceMap.containsKey(serviceSearchDropdown.getSelectedItem())) {
+                newServiceMap.putIfAbsent(serviceSearchDropdown.getSelectedItem(), serviceMap.get(serviceSearchDropdown.getSelectedItem()));
+            }
+
+            serviceMap = newServiceMap;
+            serviceSearchDropdown.setPopupItems(new ArrayList<>(filteredServices.stream()
+                .map(MedicalService::getName)
+                .collect(Collectors.toList())));
+        });
+
+        // Initialize service map with all diagnostic services
+        List<MedicalService> allServices = medicalServiceService.getAllServices();
+        serviceMap = allServices.stream()
+            .filter(s -> s.getType() == AppointmentType.DIAGNOSTIC)
+            .collect(Collectors.toMap(MedicalService::getName, s -> s));
+    }
+    
+    
+
+    
+    private void configureDateTimePicker() {
+        dateTimePicker1.setDateTimePermissive(LocalDateTime.now().plusMinutes(15));
+    }
+   
+  private void configureUIForRole() {
+        User currentUser = AuthenticationService.getInstance().getLoggedInUser();
+        if (currentUser == null) return;
+        UserRole role = currentUser.getRole();
+
+        if (role == UserRole.DOCTOR) {
+            jSplitPane1.setVisible(false);
+            this.remove(jSplitPane1);
+            jPanel4.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
+            this.add(jPanel4, BorderLayout.CENTER);
+            jLabel1.setText("My Daily Schedule");
+            jLabel2.setText("Review and manage your scheduled appointments.");
+        } else if (role != UserRole.ADMIN && role != UserRole.NURSE) {
+            jSplitPane1.setVisible(false);
+            jLabel1.setText("Access Denied");
+            jLabel2.setText("You do not have permission to view appointments.");
+        }
     }
 
-    private void populateAppointmentsList(List<Appointment> appointments) {
-        // Clear existing appointments
+
+    
+public void loadTodaysAppointments() {
         jPanel5.removeAll();
-
-        // Add appointment cards
-        for (Appointment appointment : appointments) {
-            AppointmentCard card = new AppointmentCard(appointment, this::loadTodaysAppointments);
-            jPanel5.add(card);
+        User currentUser = AuthenticationService.getInstance().getLoggedInUser();
+        if (currentUser == null) return;
+        
+        List<Appointment> appointmentsToShow;
+        if (currentUser.getRole() == UserRole.ADMIN || currentUser.getRole() == UserRole.NURSE) {
+            appointmentsToShow = appointmentService.getTodaysAppointments();
+        } else if (currentUser.getRole() == UserRole.DOCTOR) {
+            appointmentsToShow = appointmentService.getTodaysAppointmentsForDoctor(currentUser);
+        } else {
+            appointmentsToShow = new ArrayList<>();
         }
-
-        // Refresh the display
+        
+        for (Appointment appt : appointmentsToShow) {
+            jPanel5.add(new AppointmentCard(appt, currentUser, this::loadTodaysAppointments));
+        }
         jPanel5.revalidate();
         jPanel5.repaint();
     }
-
-    private void updateTodayLabel() {
-        LocalDateTime now = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy");
-        jLabel11.setText(now.format(formatter));
+    
+private void updateTodayLabel() {
+        jLabel11.setText(LocalDateTime.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy")));
     }
+    
+private void addAppointment() {
+    try {
+        // --- 1. GATHER DATA ---
+        String selectedPatientStr = searchDropdown2.getSelectedItem();
+        String selectedTypeStr = (String) jComboBox1.getSelectedItem();
+        LocalDateTime selectedDateTime = dateTimePicker1.getDateTimePermissive();
 
-    private void addAppointment() {
-        try {
-            // Validate inputs
-            String selectedPatient = searchDropdown2.getSelectedItem();
-            String selectedDoctor = searchDropdown1.getSelectedItem();
-            LocalDateTime selectedDateTime = dateTimePicker1.getDateTimePermissive();
+        // --- 2. VALIDATE INPUT ---
+        if (selectedPatientStr == null || selectedTypeStr == null || selectedDateTime == null) {
+            JOptionPane.showMessageDialog(this, "Patient, Appointment Type, and Date/Time must be selected.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
 
-            if (selectedPatient == null || selectedPatient.trim().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please select a patient", "Validation Error", JOptionPane.WARNING_MESSAGE);
+        // --- 3. RETRIEVE OBJECTS ---
+        Patient patient = patientMap.get(selectedPatientStr);
+        if (patient == null) {
+            JOptionPane.showMessageDialog(this, "Selected patient not found. Please search and select a patient again.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        Map<String, AppointmentType> typeMap = new HashMap<>();
+        typeMap.put("Consultations", AppointmentType.CONSULTATION);
+        typeMap.put("Diagnostics", AppointmentType.DIAGNOSTIC);
+        typeMap.put("Surgeries", AppointmentType.SURGERY);
+        AppointmentType type = typeMap.get(selectedTypeStr);
+        if (type == null) {
+            JOptionPane.showMessageDialog(this, "Invalid appointment type selected.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+         MedicalService linkedService = null; // Default to null
+
+        // Handle diagnostic appointments - require service selection
+        if (type == AppointmentType.DIAGNOSTIC) {
+            String selectedServiceStr = serviceSearchDropdown.getSelectedItem();
+            if (selectedServiceStr == null) {
+                JOptionPane.showMessageDialog(this, "A medical service must be selected for diagnostic appointments.", "Validation Error", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-
-            if (selectedDoctor == null || selectedDoctor.trim().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please select a doctor", "Validation Error", JOptionPane.WARNING_MESSAGE);
+            // Get the full MedicalService object from our map
+            linkedService = serviceMap.get(selectedServiceStr);
+            if (linkedService == null) {
+                JOptionPane.showMessageDialog(this, "Selected medical service not found. Please search and select a service again.", "Validation Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+        }
 
-            if (selectedDateTime == null) {
-                JOptionPane.showMessageDialog(this, "Please select date and time", "Validation Error", JOptionPane.WARNING_MESSAGE);
+        User doctor = null; // Can remain null for Diagnostics
+        if (type == AppointmentType.CONSULTATION || type == AppointmentType.SURGERY) {
+            String selectedDoctorStr = searchDropdown1.getSelectedItem();
+            if (selectedDoctorStr == null) {
+                JOptionPane.showMessageDialog(this, "A Doctor must be selected for this appointment type.", "Validation Error", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-
-            // Check if appointment is in the past
-            if (selectedDateTime.isBefore(LocalDateTime.now())) {
-                JOptionPane.showMessageDialog(this, "Cannot schedule appointment in the past", "Validation Error", JOptionPane.WARNING_MESSAGE);
+            doctor = doctorMap.get(selectedDoctorStr);
+            if (doctor == null) {
+                JOptionPane.showMessageDialog(this, "Selected doctor not found. Please search and select a doctor again.", "Validation Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+        }
 
-            // Get patient and doctor objects
-            Patient patient = patientMap.get(selectedPatient);
-            User doctor = doctorMap.get(selectedDoctor);
+        // --- 4. CALL THE SIMPLIFIED MEDIATOR ---
+        // The UI no longer needs to calculate price or service name. It just provides the core selections.
+    boolean success = appointmentMediator.bookAppointment(
+        patient,
+        doctor,      // Correctly null for Diagnostics
+        type,
+        selectedDateTime,
+        linkedService // Pass the service object (it will be null for non-diagnostics)
+    );
+        // --- END OF FIX ---
 
-            if (patient == null || doctor == null) {
-                JOptionPane.showMessageDialog(this, "Invalid patient or doctor selection", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+        // --- 5. PROVIDE FEEDBACK ---
+        if (success) {
+            JOptionPane.showMessageDialog(this, "Appointment booked successfully!");
+            loadTodaysAppointments();
+            clearForm();
+        } else {
+            JOptionPane.showMessageDialog(this, "Booking Failed. Please check for scheduling conflicts.", "Mediator Response", JOptionPane.ERROR_MESSAGE);
+        }
 
-            // Check doctor availability with detailed conflict information
-            if (!appointmentService.isDoctorAvailable(doctor, selectedDateTime)) {
-                // Get conflicting appointments to show detailed information
-                List<Appointment> conflictingAppointments = appointmentService.getConflictingAppointments(doctor, selectedDateTime);
+    } catch (Exception e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(this, "A critical error occurred: " + e.getMessage(), "Application Error", JOptionPane.ERROR_MESSAGE);
+    }
+}
+    
+    private void clearForm() {
+        searchDropdown1.clearSelection();
+        searchDropdown2.clearSelection();
+        serviceSearchDropdown.clearSelection();
+        jComboBox1.setSelectedIndex(0);
+        dateTimePicker1.setDateTimePermissive(LocalDateTime.now().plusHours(1));
+    }
+    
+    private void onAppointmentTypeChange() {
+        String selectedType = (String) jComboBox1.getSelectedItem();
+        if (selectedType == null) return;
+        
+        boolean isDiagnostic = "Diagnostics".equals(selectedType);
+        
+        // Show/hide Doctor selector
+        searchDropdown1.setVisible(!isDiagnostic);
+        jLabel13.setVisible(!isDiagnostic);
 
-                if (!conflictingAppointments.isEmpty()) {
-                    StringBuilder conflictMessage = new StringBuilder();
-                    conflictMessage.append("Doctor is not available at the selected time.\n");
-                    conflictMessage.append("Appointments must have at least 10 minutes gap between them.\n\n");
-                    conflictMessage.append("Conflicting appointments:\n");
+        // Show/hide Service selector
+        serviceSearchDropdown.setVisible(isDiagnostic);
+        jLabel14.setVisible(isDiagnostic);
 
-                    DateTimeFormatter displayFormatter = DateTimeFormatter.ofPattern("HH:mm");
-                    for (Appointment conflict : conflictingAppointments) {
-                        conflictMessage.append("• ")
-                                     .append(conflict.getAppointmentDateTime().format(displayFormatter))
-                                     .append(" - ")
-                                     .append(conflict.getPatient().getName())
-                                     .append("\n");
-                    }
-
-                    conflictMessage.append("\nPlease select a different time slot.");
-
-                    JOptionPane.showMessageDialog(this, conflictMessage.toString(), "Scheduling Conflict", JOptionPane.WARNING_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(this, "Doctor is not available at the selected time.\nAppointments must have at least 10 minutes gap between them.", "Scheduling Conflict", JOptionPane.WARNING_MESSAGE);
-                }
-                return;
-            }
-
-            // Create appointment (assuming current user is scheduling)
-            // For now, we'll use the doctor as the scheduler - in a real app, this would be the logged-in user
-            User scheduler = doctor; // Replace with actual logged-in user
-
-            Appointment newAppointment = appointmentService.createAppointment(
-                patient, doctor, selectedDateTime, "General consultation", scheduler
-            );
-
-            if (newAppointment != null) {
-                JOptionPane.showMessageDialog(this, "Appointment scheduled successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-
-                // Clear form
-                searchDropdown2.clearSelection();
-                searchDropdown1.clearSelection();
-                dateTimePicker1.setDateTimePermissive(LocalDateTime.now().plusHours(1));
-
-                // Refresh appointments list
-                loadTodaysAppointments();
-            } else {
-                JOptionPane.showMessageDialog(this, "Failed to schedule appointment", "Error", JOptionPane.ERROR_MESSAGE);
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "An error occurred while scheduling the appointment: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        if (isDiagnostic) {
+            List<String> diagnosticServices = serviceMap.values().stream()
+                    .filter(s -> s.getType() == AppointmentType.DIAGNOSTIC)
+                    .map(MedicalService::getName)
+                    .collect(Collectors.toList());
+            serviceSearchDropdown.setPopupItems(diagnosticServices);
         }
     }
+    
+   
+    
+    
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -235,15 +363,19 @@ public class AppointmentPanel extends javax.swing.JPanel {
         jLabel12 = new javax.swing.JLabel();
         searchDropdown2 = new system.ui.components.SearchDropdown();
         dateTimePicker1 = new com.github.lgooddatepicker.components.DateTimePicker();
+        jLabel13 = new javax.swing.JLabel();
+        jComboBox1 = new javax.swing.JComboBox<>();
+        jLabel14 = new javax.swing.JLabel();
         jPanel4 = new javax.swing.JPanel();
         roundedPanel2 = new system.ui.components.RoundedPanel();
         jLabel10 = new javax.swing.JLabel();
         jLabel11 = new javax.swing.JLabel();
         jScrollPane2 = new javax.swing.JScrollPane();
         jPanel5 = new javax.swing.JPanel();
+        searchbutton = new javax.swing.JButton();
 
         setBackground(new java.awt.Color(255, 255, 255));
-        setLayout(new java.awt.BorderLayout());
+        setLayout(new java.awt.BorderLayout(10, 0));
 
         jPanel3.setBackground(new java.awt.Color(247, 247, 247));
         jPanel3.setMaximumSize(new java.awt.Dimension(32767, 90));
@@ -266,7 +398,7 @@ public class AppointmentPanel extends javax.swing.JPanel {
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel2)
                     .addComponent(jLabel1))
-                .addContainerGap(1087, Short.MAX_VALUE))
+                .addContainerGap(677, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -283,7 +415,7 @@ public class AppointmentPanel extends javax.swing.JPanel {
         jPanel1.setBackground(new java.awt.Color(247, 247, 247));
         jPanel1.setMinimumSize(new java.awt.Dimension(900, 700));
         jPanel1.setPreferredSize(new java.awt.Dimension(903, 700));
-        jPanel1.setLayout(new java.awt.CardLayout(10, 0));
+        jPanel1.setLayout(new java.awt.CardLayout(10, 10));
 
         jSplitPane1.setDividerLocation(360);
         jSplitPane1.setDividerSize(0);
@@ -335,7 +467,7 @@ public class AppointmentPanel extends javax.swing.JPanel {
         searchDropdown1.setFont(new java.awt.Font("Inter", 0, 12)); // NOI18N
         searchDropdown1.setForeground(new java.awt.Color(102, 102, 102));
 
-        jLabel12.setText("Doctor");
+        jLabel12.setText("Appointment Type");
         jLabel12.setBackground(new java.awt.Color(51, 51, 51));
         jLabel12.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 14)); // NOI18N
         jLabel12.setForeground(new java.awt.Color(51, 51, 51));
@@ -345,30 +477,52 @@ public class AppointmentPanel extends javax.swing.JPanel {
 
         dateTimePicker1.setFont(new java.awt.Font("Inter", 0, 12)); // NOI18N
 
+        jLabel13.setText("Doctor");
+        jLabel13.setBackground(new java.awt.Color(51, 51, 51));
+        jLabel13.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 14)); // NOI18N
+        jLabel13.setForeground(new java.awt.Color(51, 51, 51));
+
+        jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Consultations", "Diagnostics", "Surgeries" }));
+        jComboBox1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jComboBox1ActionPerformed(evt);
+            }
+        });
+
+        jLabel14.setText("Search Service");
+        jLabel14.setBackground(new java.awt.Color(51, 51, 51));
+        jLabel14.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 14)); // NOI18N
+        jLabel14.setForeground(new java.awt.Color(51, 51, 51));
+
         javax.swing.GroupLayout roundedPanel1Layout = new javax.swing.GroupLayout(roundedPanel1);
         roundedPanel1.setLayout(roundedPanel1Layout);
         roundedPanel1Layout.setHorizontalGroup(
             roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(roundedPanel1Layout.createSequentialGroup()
-                .addGap(19, 19, 19)
+                .addGap(13, 13, 13)
                 .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(roundedPanel1Layout.createSequentialGroup()
-                        .addComponent(jLabel12)
+                        .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel13)
+                            .addComponent(jLabel12))
                         .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, roundedPanel1Layout.createSequentialGroup()
-                        .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addComponent(dateTimePicker1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(searchDropdown2, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 312, Short.MAX_VALUE)
+                    .addGroup(roundedPanel1Layout.createSequentialGroup()
+                        .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(dateTimePicker1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(searchDropdown1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jComboBox1, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, roundedPanel1Layout.createSequentialGroup()
+                            .addComponent(searchDropdown2, javax.swing.GroupLayout.DEFAULT_SIZE, 312, Short.MAX_VALUE)
+                            .addGroup(roundedPanel1Layout.createSequentialGroup()
                                 .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                    .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING)
                                     .addComponent(jLabel5, javax.swing.GroupLayout.Alignment.LEADING)
                                     .addComponent(jLabel4, javax.swing.GroupLayout.Alignment.LEADING)
                                     .addComponent(jLabel3, javax.swing.GroupLayout.Alignment.LEADING))
                                 .addGap(0, 0, Short.MAX_VALUE))
-                            .addComponent(searchDropdown1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                        .addGap(15, 15, 15))))
+                            .addComponent(jLabel6)
+                            .addComponent(jLabel14)
+                            .addComponent(serviceSearchDropdown, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addGap(14, 14, 14))))
         );
         roundedPanel1Layout.setVerticalGroup(
             roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -383,15 +537,23 @@ public class AppointmentPanel extends javax.swing.JPanel {
                 .addComponent(searchDropdown2, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jLabel12)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jLabel13)
                 .addGap(3, 3, 3)
                 .addComponent(searchDropdown1, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jLabel6)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(dateTimePicker1, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jLabel14)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(serviceSearchDropdown, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
                 .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(29, 29, 29))
+                .addGap(28, 28, 28))
         );
 
         jPanel2.add(roundedPanel1);
@@ -401,7 +563,7 @@ public class AppointmentPanel extends javax.swing.JPanel {
         jPanel4.setBackground(new java.awt.Color(247, 247, 247));
         jPanel4.setMaximumSize(new java.awt.Dimension(2147483647, 600));
         jPanel4.setPreferredSize(new java.awt.Dimension(831, 600));
-        jPanel4.setLayout(new java.awt.BorderLayout(10, 0));
+        jPanel4.setLayout(new java.awt.BorderLayout(30, 0));
 
         roundedPanel2.setBackground(new java.awt.Color(255, 255, 255));
         roundedPanel2.setForeground(new java.awt.Color(234, 234, 234));
@@ -428,18 +590,30 @@ public class AppointmentPanel extends javax.swing.JPanel {
         jPanel5.setLayout(new javax.swing.BoxLayout(jPanel5, javax.swing.BoxLayout.Y_AXIS));
         jScrollPane2.setViewportView(jPanel5);
 
+        searchbutton.setBackground(new java.awt.Color(0, 153, 255));
+        searchbutton.setFont(new java.awt.Font("Inter 18pt Medium", 0, 12)); // NOI18N
+        searchbutton.setForeground(new java.awt.Color(255, 255, 255));
+        searchbutton.setText("Refresh");
+        searchbutton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                searchbuttonActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout roundedPanel2Layout = new javax.swing.GroupLayout(roundedPanel2);
         roundedPanel2.setLayout(roundedPanel2Layout);
         roundedPanel2Layout.setHorizontalGroup(
             roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, roundedPanel2Layout.createSequentialGroup()
                 .addGap(21, 21, 21)
-                .addGroup(roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 976, Short.MAX_VALUE)
+                .addGroup(roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(roundedPanel2Layout.createSequentialGroup()
-                        .addGroup(roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel11)
-                            .addComponent(jLabel10))
+                        .addComponent(jLabel10)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(searchbutton))
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 566, Short.MAX_VALUE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, roundedPanel2Layout.createSequentialGroup()
+                        .addComponent(jLabel11)
                         .addGap(0, 0, Short.MAX_VALUE)))
                 .addGap(20, 20, 20))
         );
@@ -447,11 +621,13 @@ public class AppointmentPanel extends javax.swing.JPanel {
             roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(roundedPanel2Layout.createSequentialGroup()
                 .addGap(24, 24, 24)
-                .addComponent(jLabel10)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel10)
+                    .addComponent(searchbutton, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(12, 12, 12)
                 .addComponent(jLabel11)
                 .addGap(18, 18, 18)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 604, Short.MAX_VALUE)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 572, Short.MAX_VALUE)
                 .addContainerGap())
         );
 
@@ -469,14 +645,25 @@ public class AppointmentPanel extends javax.swing.JPanel {
 
     }//GEN-LAST:event_jButton3ActionPerformed
 
+    private void jComboBox1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBox1ActionPerformed
+    onAppointmentTypeChange();
+    }//GEN-LAST:event_jComboBox1ActionPerformed
+
+    private void searchbuttonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_searchbuttonActionPerformed
+       loadTodaysAppointments();
+    }//GEN-LAST:event_searchbuttonActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private com.github.lgooddatepicker.components.DateTimePicker dateTimePicker1;
     private javax.swing.JButton jButton3;
+    private javax.swing.JComboBox<String> jComboBox1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
     private javax.swing.JLabel jLabel12;
+    private javax.swing.JLabel jLabel13;
+    private javax.swing.JLabel jLabel14;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
@@ -493,5 +680,6 @@ public class AppointmentPanel extends javax.swing.JPanel {
     private system.ui.components.RoundedPanel roundedPanel2;
     private system.ui.components.SearchDropdown searchDropdown1;
     private system.ui.components.SearchDropdown searchDropdown2;
+    private javax.swing.JButton searchbutton;
     // End of variables declaration//GEN-END:variables
 }

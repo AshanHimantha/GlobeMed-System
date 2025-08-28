@@ -39,6 +39,9 @@ public class User {
     @Column(name = "last_login_date")
     private LocalDateTime lastLoginDate;
     // --- NEW FIELDS END ---
+    
+    @Column(name = "consultation_fee")
+    private Double consultationFee;
 
 
     public User() {}
@@ -76,4 +79,7 @@ public class User {
 
     public LocalDateTime getLastLoginDate() { return lastLoginDate; }
     public void setLastLoginDate(LocalDateTime lastLoginDate) { this.lastLoginDate = lastLoginDate; }
+    
+     public Double getConsultationFee() { return consultationFee; }
+    public void setConsultationFee(Double consultationFee) { this.consultationFee = consultationFee; }
 }

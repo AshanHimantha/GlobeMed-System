@@ -37,4 +37,29 @@ public class UserService {
         }
     }
     
+    public User findUserByUsername(String username) {
+    EntityManager em = PersistenceManager.getInstance().getEntityManager();
+    try {
+        return em.find(User.class, username);
+    } finally {
+        em.close();
+    }
+}
+    
+    public List<User> searchDoctorsByName(String name, int limit) {
+    EntityManager em = PersistenceManager.getInstance().getEntityManager();
+    try {
+        TypedQuery<User> query = em.createQuery(
+            "SELECT u FROM User u WHERE u.role = :role AND LOWER(u.lastName) LIKE LOWER(:name) ORDER BY u.lastName", 
+            User.class
+        );
+        query.setParameter("role", UserRole.DOCTOR);
+        query.setParameter("name", "%" + name + "%");
+        query.setMaxResults(limit);
+        return query.getResultList();
+    } finally {
+        em.close();
+    }
+}
+    
 }
