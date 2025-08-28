@@ -43,15 +43,16 @@ public class AppointmentCard extends javax.swing.JPanel {
         initComponents();
         this.appointmentService = new AppointmentService();
         this.appointment = appointment;
-        this.currentUser = currentUser; // <<<--- STORE THE LOGGED-IN USER
+        this.currentUser = currentUser;
         this.onDataChangeCallback = onDataChangeCallback;
-        
+
         setupManualClickHandlers();
         populateData();
     }
 
+
    
-   private void setupManualClickHandlers() {
+private void setupManualClickHandlers() {
         // Designer handles 'edit' and 'appointment_status'. We handle labels here.
         pay.addMouseListener(new MouseAdapter() {
             @Override
@@ -69,24 +70,21 @@ public class AppointmentCard extends javax.swing.JPanel {
     }
 
 
- private void populateData() {
+  private void populateData() {
         if (appointment == null) return;
-
+        
         time.setText(appointment.getAppointmentDateTime().format(DateTimeFormatter.ofPattern("HH:mm")));
         date.setText(appointment.getAppointmentDateTime().format(DateTimeFormatter.ofPattern("yyyy.MM.dd")));
         patient_name.setText(appointment.getPatient().getName());
         id.setText("ID : " + appointment.getPatient().getPatientId());
+        type.setText(appointment.getType().toString());
 
-        AppointmentType typeEnum = appointment.getType();
-        type.setText(typeEnum.toString());
-
-        switch (typeEnum) {
+        switch (appointment.getType()) {
             case CONSULTATION:
             case SURGERY:
                 User doctor = appointment.getDoctor();
                 drname.setText("Dr. " + (doctor != null ? doctor.getFirstName() + " " + doctor.getLastName() : "N/A"));
-                // Corrected image paths (ensure your files match these names)
-                docicon.setIcon(loadImageIcon(typeEnum == AppointmentType.SURGERY ? "/img/surgery.png" : "/img/stethoscope.png"));
+                docicon.setIcon(loadImageIcon(appointment.getType() == AppointmentType.SURGERY ? "/img/surgery.png" : "/img/stethoscope.png"));
                 break;
             case DIAGNOSTIC:
                 drname.setText(appointment.getServiceName());
@@ -98,7 +96,7 @@ public class AppointmentCard extends javax.swing.JPanel {
                 break;
         }
         updateCardVisualState();
-    }
+  }
  
   private ImageIcon loadImageIcon(String path) {
         java.net.URL imageUrl = getClass().getResource(path);
@@ -109,78 +107,57 @@ public class AppointmentCard extends javax.swing.JPanel {
   
   
 private void updateCardVisualState() {
-    if (appointment == null || currentUser == null) return;
+        if (appointment == null || currentUser == null) return;
+        String status = appointment.getStatus().toUpperCase();
+        UserRole role = currentUser.getRole();
+        AppointmentType apptType = appointment.getType();
 
-    String status = appointment.getStatus().toUpperCase();
-    UserRole role = currentUser.getRole();
-    AppointmentType apptType = appointment.getType();
+        pay.setVisible(false);
+        edit.setVisible(false);
+        cancel.setVisible(false);
+        appointment_status.setEnabled(true);
 
-    // Default state for all optional controls
-    pay.setVisible(false);
-    edit.setVisible(false);
-    cancel.setVisible(false);
-    appointment_status.setEnabled(true); // Start enabled, then disable if needed
+        switch (status) {
+            case "PENDING_PAYMENT":
+                appointment_status.setText("Process Payment");
+                appointment_status.setToolTipText("Click to process payment");
+                appointment_status.setBackground(new java.awt.Color(255, 193, 7));
+                if (role != UserRole.ADMIN && role != UserRole.NURSE) {
+                    appointment_status.setEnabled(false);
+                }
+                break;
+            case "PENDING_CONFIRMATION":
+                appointment_status.setText("Confirm Surgery");
+                appointment_status.setToolTipText("Click to confirm this surgery booking");
+                appointment_status.setBackground(new java.awt.Color(23, 162, 184));
+                if (role != UserRole.ADMIN) {
+                    appointment_status.setEnabled(false);
+                }
+                break;
+            case "SCHEDULED":
+                appointment_status.setText("Mark Complete");
+                appointment_status.setBackground(new java.awt.Color(0, 153, 255));
+                if (role == UserRole.ADMIN || role == UserRole.NURSE) {
+                    edit.setVisible(true);
+                    cancel.setVisible(true);
+                }
+                boolean canMarkComplete = (role == UserRole.DOCTOR && (apptType == AppointmentType.CONSULTATION || apptType == AppointmentType.SURGERY))
+                                          || (role == UserRole.NURSE && apptType == AppointmentType.DIAGNOSTIC)
+                                          || (role == UserRole.ADMIN);
+                appointment_status.setEnabled(canMarkComplete);
+                break;
+            case "COMPLETED":
+                appointment_status.setText("Completed");
 
-    switch (status) {
-        case "PENDING_PAYMENT":
-            appointment_status.setText("Pending Payment");
-            appointment_status.setEnabled(false);
-            appointment_status.setBackground(new java.awt.Color(255, 193, 7)); // Orange
-            if (role == UserRole.ADMIN || role == UserRole.NURSE) {
-                pay.setVisible(true);
-            }
-            break;
-            
-        case "PENDING_CONFIRMATION":
-            appointment_status.setText("Confirm Surgery");
-            appointment_status.setBackground(new java.awt.Color(23, 162, 184)); // Teal
-            // Only Admins can confirm a surgery
-            if (role != UserRole.ADMIN) {
-                appointment_status.setEnabled(false);
-            }
-            break;
+                appointment_status.setBackground(new java.awt.Color(40, 167, 69));
+                break;
+            case "CANCELLED":
+                appointment_status.setText("Cancelled");
 
-        case "SCHEDULED":
-            appointment_status.setText("Mark Complete");
-            appointment_status.setBackground(new java.awt.Color(0, 153, 255)); // Blue
-
-            // --- THIS IS THE NEW LOGIC ---
-            // Administrative controls are only for Admins/Nurses
-            if (role == UserRole.ADMIN || role == UserRole.NURSE) {
-                edit.setVisible(true);
-                cancel.setVisible(true);
-            }
-            
-            // Logic for enabling the "Mark Complete" button
-            boolean canMarkComplete = false;
-            if (role == UserRole.DOCTOR && (apptType == AppointmentType.CONSULTATION || apptType == AppointmentType.SURGERY)) {
-                // Doctors can complete Consultations and Surgeries
-                canMarkComplete = true;
-            } else if (role == UserRole.NURSE && apptType == AppointmentType.DIAGNOSTIC) {
-                // Nurses can complete Diagnostics
-                canMarkComplete = true;
-            } else if (role == UserRole.ADMIN) {
-                // Admins can complete anything (override)
-                canMarkComplete = true;
-            }
-            
-            appointment_status.setVisible(canMarkComplete);
-            // --- END OF NEW LOGIC ---
-            break;
-            
-        case "COMPLETED":
-            appointment_status.setText("Completed");
-      
-            appointment_status.setBackground(new java.awt.Color(40, 167, 69)); // Green
-            break;
-            
-        case "CANCELLED":
-            appointment_status.setText("Cancelled");
-         
-            appointment_status.setBackground(new java.awt.Color(220, 53, 69)); // Red
-            break;
+                appointment_status.setBackground(new java.awt.Color(220, 53, 69));
+                break;
+        }
     }
-}
 
 
     private void processPayment() {
@@ -597,17 +574,14 @@ private void updateCardVisualState() {
     }// </editor-fold>//GEN-END:initComponents
 
     private void appointment_statusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_appointment_statusActionPerformed
-       if (appointment == null) return;
-        
+     if (appointment == null) return;
         String status = appointment.getStatus();
-
-        // Use an if-else chain to handle actions based on the button's current state
         if ("PENDING_PAYMENT".equals(status)) {
             processPayment();
         } else if ("PENDING_CONFIRMATION".equals(status)) {
             confirmSurgery();
         } else if ("SCHEDULED".equals(status)) {
-            handleCompletion(); // A new helper for the completion logic
+            handleCompletion();
         }
     }//GEN-LAST:event_appointment_statusActionPerformed
 
@@ -634,7 +608,6 @@ private void updateCardVisualState() {
      */
 private void handleSurgeryCompletion() {
         JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
-        // This will show an error until SurgeryCompletionDialog is created and corrected.
         SurgeryCompletionDialog dialog = new SurgeryCompletionDialog(parentFrame, true, this.appointment, this.onDataChangeCallback);
         dialog.setVisible(true);
     }
@@ -657,7 +630,7 @@ private void handleSurgeryCompletion() {
     /**
      * Helper method to open the Prescription Dialog.
      */
-    private void openPrescriptionDialog() {
+private void openPrescriptionDialog() {
         JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
         PrescriptionDialog dialog = new PrescriptionDialog(parentFrame, true, this.appointment, this.onDataChangeCallback);
         dialog.setVisible(true);
@@ -680,9 +653,7 @@ private void handleSurgeryCompletion() {
     
     
     private void editMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_editMouseClicked
-       if (edit.isVisible()) {
-            showEditDialog();
-        }
+       if (edit.isVisible()) showEditDialog();
     }//GEN-LAST:event_editMouseClicked
 
 

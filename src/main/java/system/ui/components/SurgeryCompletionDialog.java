@@ -12,10 +12,12 @@ import javax.swing.table.DefaultTableModel;
 import system.enums.PaymentMethod;
 import system.model.Appointment;
 import system.model.BillableItem;
+import system.model.Claim;
 import system.model.User;
 import system.service.AppointmentService;
 import system.service.AuthenticationService;
 import system.service.BillingService;
+import system.service.ClaimService;
 
 /**
  *
@@ -25,35 +27,34 @@ public class SurgeryCompletionDialog extends javax.swing.JDialog {
 
     private final Appointment appointment;
     private final Runnable refreshCallback;
-    private final BillingService billingService;
     private final AppointmentService appointmentService;
+    private final ClaimService claimService;
     private final DefaultTableModel tableModel;
+    
+    // This list now holds temporary items not yet linked to a claim
     private final List<BillableItem> tempBillableItems = new ArrayList<>();
     private double currentTotal = 0.0;
 
-    public SurgeryCompletionDialog(java.awt.Frame parent, boolean modal, Appointment appointment, Runnable refreshCallback) {
+   public SurgeryCompletionDialog(java.awt.Frame parent, boolean modal, Appointment appointment, Runnable refreshCallback) {
         super(parent, modal);
         initComponents();
         this.appointment = appointment;
         this.refreshCallback = refreshCallback;
-        this.billingService = new BillingService();
         this.appointmentService = new AppointmentService();
+        this.claimService = new ClaimService();
 
-        // Configure Dialog
         setTitle("Finalize Charges for Surgery #" + appointment.getId());
         setLocationRelativeTo(parent);
 
-        // Configure JTable
         tableModel = new DefaultTableModel(new Object[]{"Item Description", "Cost"}, 0);
         jTable1.setModel(tableModel);
-
-        // Add placeholder text to fields
-        roundedTextField1.setText("Enter Item Description");
-        roundedTextField2.setText("0.00");
+        
+        // You can add a main title label to your designer and set it here
+        // titleLabel.setText("Finalize Charges for " + appointment.getPatient().getName());
         updateTotalLabel();
     }
 
-    private void updateTotalLabel() {
+ private void updateTotalLabel() {
         NumberFormat currencyFormat = NumberFormat.getCurrencyInstance();
         jLabel2.setText(currencyFormat.format(currentTotal));
     }
@@ -179,19 +180,13 @@ public class SurgeryCompletionDialog extends javax.swing.JDialog {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        String description = roundedTextField1.getText().trim();
+       String description = roundedTextField1.getText().trim();
         String costStr = roundedTextField2.getText().trim();
-
-        if (description.isEmpty() || description.equals("Enter Item Description")) {
-            JOptionPane.showMessageDialog(this, "Item Description is required.", "Input Error", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
         double cost;
         try {
             cost = Double.parseDouble(costStr);
-            if (cost <= 0) {
-                JOptionPane.showMessageDialog(this, "Cost must be a positive number.", "Input Error", JOptionPane.WARNING_MESSAGE);
+            if (description.isEmpty() || cost <= 0) {
+                JOptionPane.showMessageDialog(this, "Description and a positive Cost are required.", "Input Error", JOptionPane.WARNING_MESSAGE);
                 return;
             }
         } catch (NumberFormatException e) {
@@ -199,16 +194,14 @@ public class SurgeryCompletionDialog extends javax.swing.JDialog {
             return;
         }
 
-        BillableItem newItem = new BillableItem(appointment, description, cost);
+        // Create a temporary BillableItem, not yet linked to a claim
+        BillableItem newItem = new BillableItem(null, description, cost);
         tempBillableItems.add(newItem);
 
-        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance();
-        tableModel.addRow(new Object[]{description, currencyFormat.format(cost)});
-
+        tableModel.addRow(new Object[]{description, NumberFormat.getCurrencyInstance().format(cost)});
         currentTotal += cost;
         updateTotalLabel();
 
-        // Clear fields for the next item
         roundedTextField1.setText("");
         roundedTextField2.setText("0.00");
         roundedTextField1.requestFocusInWindow();
@@ -216,74 +209,60 @@ public class SurgeryCompletionDialog extends javax.swing.JDialog {
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
 
-        // 1. Validate that at least one billable item has been added.
-        if (tempBillableItems.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please add at least one billable item before finalizing.", "Error", JOptionPane.ERROR_MESSAGE);
+  if (tempBillableItems.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please add at least one billable item.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        // 2. Open a dialog to ask the user for the payment/billing method.
         String[] options = {"CASH", "CARD", "INSURANCE"};
-        String message = "The total bill is " + jLabel2.getText() + ".\n" + // Assuming jLabel2 shows the total
-                         "Please select how this bill will be handled.";
-                         
-        int choice = JOptionPane.showOptionDialog(
-            this,
-            message,
-            "Select Billing Method",
-            JOptionPane.DEFAULT_OPTION,
-            JOptionPane.QUESTION_MESSAGE,
-            null,
-            options,
-            options[0]
-        );
+        String message = "The total bill is " + jLabel2.getText() + ".\nPlease select the billing method.";
+        int choice = JOptionPane.showOptionDialog(this, message, "Select Billing Method", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
 
-        // If the user closes the dialog or clicks cancel, stop the process.
-        if (choice == JOptionPane.CLOSED_OPTION) {
-            return;
-        }
+        if (choice == JOptionPane.CLOSED_OPTION) return;
 
-        // 3. Convert the user's choice into a PaymentMethod enum.
         PaymentMethod selectedMethod = PaymentMethod.valueOf(options[choice]);
-
-        // 4. Get the currently logged-in user who is performing this action.
         User confirmingUser = AuthenticationService.getInstance().getLoggedInUser();
         if (confirmingUser == null) {
-            JOptionPane.showMessageDialog(this, "Session error: Cannot identify the current user. Please log in again.", "Authentication Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Session error. Please log in again.", "Authentication Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        // 5. Save the billable items to the database first.
-        boolean itemsSaved = billingService.saveBillableItems(tempBillableItems);
-        
-        if (!itemsSaved) {
-            JOptionPane.showMessageDialog(this, "A critical database error occurred while saving the billing items.", "Database Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
+        // --- THE CORRECTED WORKFLOW ---
 
-        // 6. Update the main appointment record with the payment method and completed status.
-        // This is the corrected call to the 4-parameter service method.
+        // 1. First, mark the appointment as COMPLETED in the database.
         boolean appointmentUpdated = appointmentService.updatePaymentMethodAndStatus(appointment.getId(), selectedMethod, "COMPLETED", confirmingUser);
+        if (!appointmentUpdated) {
+            JOptionPane.showMessageDialog(this, "Failed to update the appointment status.", "Database Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        // Also update our local object to reflect the change
+        appointment.setStatus("COMPLETED");
 
-        // 7. Provide final feedback to the user based on the outcome.
-        if (appointmentUpdated) {
-            String successMessage = "Charges saved and surgery has been marked as COMPLETED.";
+        // 2. NOW that the appointment is officially completed, create the final Claim object.
+        // This will now pass the validation check in the Claim constructor.
+        Claim finalClaim = new Claim(appointment, this.currentTotal, selectedMethod);
+        
+        // 3. Link all the temporary billable items to this new, valid claim.
+        for (BillableItem item : tempBillableItems) {
+            finalClaim.addItem(item);
+        }
+
+        // 4. Save the completed claim with all its items in a single transaction.
+        Claim savedClaim = claimService.createClaimWithItems(finalClaim);
+        
+        // 5. Provide final feedback.
+        if (savedClaim != null) {
+            String successMessage = "Charges saved and surgery marked as COMPLETED.";
             if (selectedMethod == PaymentMethod.INSURANCE) {
                 successMessage += "\nThe appointment is now ready for an insurance claim to be processed.";
             }
             JOptionPane.showMessageDialog(this, successMessage, "Success", JOptionPane.INFORMATION_MESSAGE);
-            
-            // Trigger the callback to refresh the main appointments list.
-            if (refreshCallback != null) {
-                refreshCallback.run();
-            }
-            
-            // Close this dialog.
+            if (refreshCallback != null) refreshCallback.run();
             this.dispose();
         } else {
-            JOptionPane.showMessageDialog(this, "Failed to update the final appointment status.", "Database Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Failed to save the final claim details.", "Database Error", JOptionPane.ERROR_MESSAGE);
+            // At this point, a real system would need logic to handle this inconsistency.
         }
-    
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed

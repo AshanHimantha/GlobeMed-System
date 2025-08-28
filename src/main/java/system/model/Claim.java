@@ -4,17 +4,23 @@
  */
 package system.model;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import system.enums.ClaimStatus;
 import system.enums.PaymentMethod;
 
 /**
@@ -44,20 +50,34 @@ public class Claim {
 
     @Column(name = "paid_by_patient")
     private double paidByPatient;
-
-    @Column(name = "status", nullable = false)
-    private String status; // e.g., "PENDING_VALIDATION", "PENDING_INSURANCE", "PENDING_PATIENT_BILLING", "CLOSED"
+    
+   
+@Column(name = "insurance_auth_id")
+    private String insuranceAuthorizationId;
+    
+    
+     @Enumerated(EnumType.STRING) // Tells JPA to store the enum's name (e.g., "CLOSED") in the DB
+    @Column(name = "status", nullable = false, length = 50)
+    private ClaimStatus status; // Changed from String to ClaimStatus
 
     @Column(name = "claim_date", nullable = false)
     private LocalDate claimDate;
     
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method")
+     @Column(name = "payment_method", length = 20)
     private PaymentMethod paymentMethod;
+    
+    @OneToMany(mappedBy = "claim", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<BillableItem> items = new ArrayList<>();
 
     // JPA requires a no-arg constructor
     public Claim() {}
 
+    
+    public void addItem(BillableItem item) {
+        this.items.add(item);
+        item.setClaim(this);
+    }
 
    public Claim(Appointment appointment, double totalAmount, PaymentMethod paymentMethod) {
         if (!"COMPLETED".equals(appointment.getStatus())) {
@@ -67,7 +87,7 @@ public class Claim {
         this.totalAmount = totalAmount;
         this.claimDate = LocalDate.now();
         this.paymentMethod = paymentMethod;
-        this.status = "PENDING_VALIDATION"; // The first step in our chain
+        this.status = ClaimStatus.PENDING_VALIDATION;
         this.paidByInsurance = 0.0;
         this.paidByPatient = 0.0;
     }
@@ -83,8 +103,8 @@ public class Claim {
     public void setPaidByInsurance(double paidByInsurance) { this.paidByInsurance = paidByInsurance; }
     public double getPaidByPatient() { return paidByPatient; }
     public void setPaidByPatient(double paidByPatient) { this.paidByPatient = paidByPatient; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public ClaimStatus getStatus() { return status; }
+    public void setStatus(ClaimStatus status) { this.status = status; }
     public LocalDate getClaimDate() { return claimDate; }
     public void setClaimDate(LocalDate claimDate) { this.claimDate = claimDate; }
     public PaymentMethod getPaymentMethod() { return paymentMethod; }
@@ -97,4 +117,9 @@ public class Claim {
     public double getPatientDueAmount() {
         return totalAmount - paidByInsurance;
     }
+    
+     public List<BillableItem> getItems() { return items; }
+    public void setItems(List<BillableItem> items) { this.items = items; }   
+    public String getInsuranceAuthorizationId() { return insuranceAuthorizationId; }
+    public void setInsuranceAuthorizationId(String insuranceAuthorizationId) { this.insuranceAuthorizationId = insuranceAuthorizationId; }
 }

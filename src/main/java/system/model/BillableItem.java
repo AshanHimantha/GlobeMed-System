@@ -4,76 +4,50 @@
  */
 package system.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+
+
+import jakarta.persistence.*;
 
 /**
- *
- * @author User
+ * Represents a single line item (one charge) on a Claim.
  */
 @Entity
 @Table(name = "billable_items")
 public class BillableItem {
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Appointment getAppointment() {
-        return appointment;
-    }
-
-    public void setAppointment(Appointment appointment) {
-        this.appointment = appointment;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public double getCost() {
-        return cost;
-    }
-
-    public void setCost(double cost) {
-        this.cost = cost;
-    }
-    
-    public BillableItem() {}
-    public BillableItem(Appointment apt, String desc, double cost) {
-        this.appointment = apt;
-        this.description = desc;
-        this.cost = cost;
-    }
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // The completed appointment this charge belongs to
-    @ManyToOne
-    @JoinColumn(name = "appointment_id", nullable = false)
-    private Appointment appointment;
+    // --- THIS IS THE FIX ---
+    // A BillableItem belongs to a Claim, not an Appointment.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "claim_id", nullable = false)
+    private Claim claim;
+    // --- END OF FIX ---
 
     @Column(name = "item_description", nullable = false)
-    private String description; // e.g., "Surgeon's Fee", "Anesthesia", "Surgical Supplies"
+    private String description;
 
     @Column(name = "cost", nullable = false)
     private double cost;
-    
-  
+
+    public BillableItem() {}
+
+    // --- CONSTRUCTOR IS NOW CORRECT ---
+    public BillableItem(Claim claim, String description, double cost) {
+        this.claim = claim;
+        this.description = description;
+        this.cost = cost;
+    }
+
+    // --- Getters and Setters ---
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Claim getClaim() { return claim; }
+    public void setClaim(Claim claim) { this.claim = claim; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public double getCost() { return cost; }
+    public void setCost(double cost) { this.cost = cost; }
 }

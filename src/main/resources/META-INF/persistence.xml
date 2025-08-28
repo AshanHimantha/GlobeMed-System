@@ -10,8 +10,8 @@
     <class>com.globemed.system.model.MedicalService</class>
     <class>com.globemed.system.model.Prescription</class>
     <class>com.globemed.system.model.PrescriptionItem</class>
-     <class>com.globemed.system.model.BillableItem</class>
-    
+    <class>com.globemed.system.model.BillableItem</class>
+    <validation-mode>NONE</validation-mode>
     <properties>
       <!-- MySQL Database Connection Settings -->
       <property name="jakarta.persistence.jdbc.driver" value="com.mysql.cj.jdbc.Driver"/>
@@ -23,6 +23,7 @@
       <property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect"/>
       <property name="hibernate.hbm2ddl.auto" value="update"/>
       <property name="hibernate.show_sql" value="true"/>
+      <property name="jakarta.persistence.schema-generation.database.action" value="drop-and-create"/>
     </properties>
   </persistence-unit>
 </persistence>

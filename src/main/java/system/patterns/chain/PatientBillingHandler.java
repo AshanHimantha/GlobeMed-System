@@ -1,10 +1,9 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
 package system.patterns.chain;
 
-import javax.swing.JTextArea;
+import javax.swing.JOptionPane;
+import system.enums.ClaimStatus;
+import system.enums.PaymentMethod;
 import system.model.Claim;
 
 /**
@@ -12,20 +11,65 @@ import system.model.Claim;
  * @author User
  */
 public class PatientBillingHandler extends ClaimHandler {
-    public PatientBillingHandler(JTextArea logArea) {
-        super(logArea);
+
+    public PatientBillingHandler() {
+        super();
     }
 
+    /**
+     * This method signature now correctly overrides the one in ClaimHandler.
+     * @param claim The claim to be processed.
+     */
     @Override
     public void processClaim(Claim claim) {
-        log("Generating final bill for patient...");
-        double patientDue = claim.getPatientDueAmount();
-        claim.setPaidByPatient(patientDue); // For this demo, assume patient pays immediately.
+        if (claim.getStatus() != ClaimStatus.PENDING_PATIENT_BILLING) {
+            passToNext(claim);
+            return;
+        }
+
+        double patientDueAmount = claim.getPatientDueAmount();
+        if (patientDueAmount <= 0.01) {
+            log("No balance due from patient. Closing claim.");
+            claim.setStatus(ClaimStatus.CLOSED);
+            claimService.updateClaim(claim);
+            passToNext(claim);
+            return;
+        }
+
+        String[] options = {"Pay with CARD", "Pay with CASH", "Cancel"};
+        String message = String.format("Final Bill for Claim #%d...\nAmount Due: $%.2f",
+            claim.getId(), patientDueAmount);
         
-        log("Patient billed for remaining amount: $" + String.format("%.2f", patientDue));
-        claim.setStatus("CLOSED");
-        claimService.updateClaim(claim);
-        log("Claim is now CLOSED.");
-        passToNext(claim); // Pass to null, ending the chain.
+        int choice = JOptionPane.showOptionDialog(null, message, "Patient Final Billing",
+            JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options, options[0]);
+
+        switch (choice) {
+            case 0: // Pay with CARD
+                log("Patient chose to pay with CARD. Passing to CardPaymentHandler.");
+                claim.setPaymentMethod(PaymentMethod.CARD);
+                claim.setStatus(ClaimStatus.CLOSED);
+                passToNext(claim);
+                break;
+            case 1: // Pay with CASH
+                log("Patient paid with CASH. Closing claim.");
+                claim.setPaidByPatient(claim.getPaidByPatient() + patientDueAmount);
+                claim.setStatus(ClaimStatus.CLOSED);
+                claimService.updateClaim(claim);
+                // Pass it on, in case there are any final logging handlers after this.
+                passToNext(claim);
+                break;
+            default: // User cancelled
+                log("Patient billing was cancelled by user.");
+                // The chain stops here.
+                return;
+        }
+    }
+    /**
+     * A mock method to simulate processing a credit card transaction.
+     */
+    private boolean processCardTransaction(double amount) {
+        System.out.println("   (Contacting external payment gateway for Rs." + String.format("%.2f", amount) + "...)");
+        // In a real app, this would return the result of the API call.
+        return true; // Assume success for the demo.
     }
 }
