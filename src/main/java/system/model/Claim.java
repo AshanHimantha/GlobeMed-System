@@ -17,11 +17,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import system.enums.ClaimStatus;
 import system.enums.PaymentMethod;
+import system.patterns.visitor.ReportVisitor;
+import system.patterns.visitor.Visitable;
 
 /**
  *
@@ -29,7 +32,7 @@ import system.enums.PaymentMethod;
  */
 @Entity
 @Table(name = "claims")
-public class Claim {
+public class Claim implements Visitable{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -51,7 +54,11 @@ public class Claim {
     @Column(name = "paid_by_patient")
     private double paidByPatient;
     
-   
+   @Override
+    @Transient // Tell JPA to ignore this method for database mapping
+    public void accept(ReportVisitor visitor) {
+        visitor.visit(this);
+    }
 @Column(name = "insurance_auth_id")
     private String insuranceAuthorizationId;
     

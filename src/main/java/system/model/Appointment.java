@@ -6,11 +6,13 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import system.enums.AppointmentType;
 import system.enums.PaymentMethod;
+import system.patterns.visitor.ReportVisitor;
+import system.patterns.visitor.Visitable;
 
 
 @Entity
 @Table(name = "appointments")
-public class Appointment {
+public class Appointment implements Visitable{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,10 +31,14 @@ public class Appointment {
     @JoinColumn(name = "scheduled_by_username", nullable = false)
     private User scheduledBy;
 
-    /**
-     * The specific cataloged service being performed, if applicable (e.g., a specific test).
-     * This is NULL for non-catalog services like a general consultation or a custom surgery.
-     */
+   
+     @Override
+    @Transient // Tell JPA to ignore this method for database mapping
+    public void accept(ReportVisitor visitor) {
+        visitor.visit(this); // The "double dispatch" mechanism
+    }
+    
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_id", nullable = true) // This is now optional
     private MedicalService medicalService;
