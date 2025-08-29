@@ -225,6 +225,7 @@ private final ClaimService claimService;
         leftPanel.setBackground(Color.WHITE);
         leftPanel.setLayout(new BorderLayout(10, 10));
         leftPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        leftPanel.setForeground(new java.awt.Color(234, 234, 234));
         JLabel leftTitle = new JLabel("Appointments Ready for Billing");
         leftTitle.setFont(new Font("Inter", Font.BOLD, 16));
         refreshButton = new JButton("Refresh");
@@ -242,6 +243,7 @@ private final ClaimService claimService;
         rightPanel.setBackground(Color.WHITE);
         rightPanel.setLayout(new BorderLayout(10, 10));
         rightPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+          rightPanel.setForeground(new java.awt.Color(234, 234, 234));
         
         detailsTextArea = new JTextArea("Please select an appointment from the list.");
         detailsTextArea.setEditable(false);
