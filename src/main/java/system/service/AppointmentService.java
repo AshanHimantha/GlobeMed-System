@@ -43,6 +43,16 @@ public Appointment createAppointment(Patient patient, User doctor, User schedule
         }
     }
 
+public List<Appointment> getAllAppointments() {
+        EntityManager em = PersistenceManager.getInstance().getEntityManager();
+        try {
+            TypedQuery<Appointment> query = em.createQuery("SELECT a FROM Appointment a", Appointment.class);
+            return query.getResultList();
+        } finally {
+            em.close();
+        }
+    }
+
     /**
      * Checks if a specific doctor is available at a given time with a 10-minute buffer.
      */

@@ -39,6 +39,16 @@ public class ClaimService {
         }
     }
     
+    public List<Claim> getAllClaims() {
+        EntityManager em = PersistenceManager.getInstance().getEntityManager();
+        try {
+            TypedQuery<Claim> query = em.createQuery("SELECT c FROM Claim c", Claim.class);
+            return query.getResultList();
+        } finally {
+            em.close();
+        }
+    }
+    
     public Claim findClaimByAppointmentId(Long appointmentId) {
         if (appointmentId == null) return null;
         EntityManager em = PersistenceManager.getInstance().getEntityManager();
