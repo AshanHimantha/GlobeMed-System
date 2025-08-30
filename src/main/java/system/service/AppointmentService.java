@@ -1,4 +1,3 @@
-
 package system.service;
 
 import jakarta.persistence.EntityManager;
@@ -142,6 +141,34 @@ public boolean isDoctorAvailable(User doctor, LocalDateTime dateTime) {
             if (em.getTransaction().isActive()) em.getTransaction().rollback();
             e.printStackTrace();
             return false;
+        } finally {
+            if (em != null) em.close();
+        }
+    }
+
+    /**
+     * Finds an appointment by its ID.
+     */
+    public Appointment getAppointmentById(Long appointmentId) {
+        EntityManager em = PersistenceManager.getInstance().getEntityManager();
+        try {
+            return em.find(Appointment.class, appointmentId);
+        } finally {
+            if (em != null) em.close();
+        }
+    }
+
+    /**
+     * Searches for appointments by ID (partial match).
+     */
+    public List<Appointment> searchAppointmentsByIdPattern(String idPattern) {
+        EntityManager em = PersistenceManager.getInstance().getEntityManager();
+        try {
+            TypedQuery<Appointment> query = em.createQuery(
+                "SELECT a FROM Appointment a WHERE CAST(a.id AS string) LIKE :pattern ORDER BY a.id DESC",
+                Appointment.class);
+            query.setParameter("pattern", "%" + idPattern + "%");
+            return query.getResultList();
         } finally {
             if (em != null) em.close();
         }

@@ -21,6 +21,7 @@ import system.ui.panels.ClaimProcessingPanel;
 import system.ui.panels.DashbaordPanel;
 import system.ui.panels.PatientRecordPanel;
 import system.ui.panels.PermissionTestPanel;
+import system.ui.panels.PharmacyPanel;
 import system.ui.panels.ReportGeneratorPanel;
 
 
@@ -338,7 +339,8 @@ public class MainFrame extends javax.swing.JFrame {
                 {"Appointments", "/img/calendar.png", "/img/calendar.png", "APPOINTMENTS"},
                 {"Billing & Claims", "/img/bill.png", "/img/bill.png", "BILLING"},
                 {"Permissions", "/img/safety.png", "/img/safety.png", "PERMISSIONS"},
-                {"Reports", "/img/report.png", "/img/report.png", "REPORTS"}
+                {"Reports", "/img/report.png", "/img/report.png", "REPORTS"},
+                {"Pharmacy", "/img/stethoscope.png", "/img/stethoscope.png", "PHARMACY"}
         };
 
         // Create and add nav items with icons
@@ -494,6 +496,7 @@ public class MainFrame extends javax.swing.JFrame {
         panels.put("BILLING", new ClaimProcessingPanel());
         panels.put("PERMISSIONS", new PermissionTestPanel());
         panels.put("REPORTS", new ReportGeneratorPanel());
+        panels.put("PHARMACY", new PharmacyPanel()); // Add PharmacyPanel
 
         // Add all panels to jPanel3 with CardLayout
         for (Map.Entry<String, javax.swing.JPanel> entry : panels.entrySet()) {
@@ -525,6 +528,7 @@ public class MainFrame extends javax.swing.JFrame {
             case "BILLING": return "Billing & Claims";
             case "PERMISSIONS": return "Permissions";
             case "REPORTS": return "Reports";
+            case "PHARMACY": return "Pharmacy"; // Add Pharmacy display name
             default: return panelName;
         }
     }
@@ -539,8 +543,8 @@ public class MainFrame extends javax.swing.JFrame {
         Map<UserRole, List<String>> rolePermissions = new HashMap<>();
         rolePermissions.put(UserRole.DOCTOR, List.of("APPOINTMENTS","REPORTS"));
         rolePermissions.put(UserRole.NURSE, List.of("DASHBOARD", "PATIENT_RECORDS", "APPOINTMENTS", "PERMISSIONS"));
-        rolePermissions.put(UserRole.PHARMACIST, List.of("DASHBOARD", "PATIENT_RECORDS", "PERMISSIONS"));
-        rolePermissions.put(UserRole.ADMIN, List.of("DASHBOARD", "APPOINTMENTS", "BILLING", "PERMISSIONS", "REPORTS"));
+        rolePermissions.put(UserRole.PHARMACIST, List.of("DASHBOARD", "PATIENT_RECORDS", "PERMISSIONS", "PHARMACY"));
+        rolePermissions.put(UserRole.ADMIN, List.of("DASHBOARD", "APPOINTMENTS", "BILLING", "PERMISSIONS", "REPORTS","PHARMACY"));
 
         // 3. Get the list of allowed panels for the current user's role
         List<String> allowedPanels = rolePermissions.get(role);
@@ -561,7 +565,8 @@ public class MainFrame extends javax.swing.JFrame {
                 {"Appointments", "/img/calendar.png", "/img/calendar.png", "APPOINTMENTS"},
                 {"Billing & Claims", "/img/bill.png", "/img/bill.png", "BILLING"},
                 {"Permissions", "/img/safety.png", "/img/safety.png", "PERMISSIONS"},
-                {"Reports", "/img/report.png", "/img/report.png", "REPORTS"}
+                {"Reports", "/img/report.png", "/img/report.png", "REPORTS"},
+                {"Pharmacy", "/img/stethoscope.png", "/img/stethoscope.png", "PHARMACY"}
         };
 
         // 4. Iterate through the master navItemData and only create buttons for allowed panels

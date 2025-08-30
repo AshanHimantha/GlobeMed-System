@@ -133,15 +133,7 @@ public class PermissionTestPanel extends JPanel {
         centerPanel.add(scrollPane, BorderLayout.CENTER);
         add(centerPanel, BorderLayout.CENTER);
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
+     
      
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
