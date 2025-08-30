@@ -50,15 +50,11 @@ public class AppointmentPanel extends javax.swing.JPanel {
     private Map<String, User> doctorMap;
     private Map<String, MedicalService> serviceMap;
     private Timer refreshTimer;
-    private system.ui.components.SearchDropdown serviceSearchDropdown; // Add missing field
 
     public AppointmentPanel() {
-        // Initialize the missing serviceSearchDropdown component BEFORE initComponents
-        serviceSearchDropdown = new system.ui.components.SearchDropdown();
-
         initComponents();
         
-       this.patientService = new PatientService();
+        this.patientService = new PatientService();
         this.userService = new UserService();
         this.appointmentService = new AppointmentService();
         this.appointmentMediator = new AppointmentScheduler();
@@ -67,16 +63,45 @@ public class AppointmentPanel extends javax.swing.JPanel {
         this.doctorMap = new HashMap<>();
         this.serviceMap = new HashMap<>();
         
+        // Initialize service data first before setting up listeners
+        initializeServiceData();
+
         configureUIForRole();
         configureDateTimePicker();
         updateTodayLabel();
-        onAppointmentTypeChange();
         setupSearchListeners();
+        onAppointmentTypeChange();
         loadTodaysAppointments();
         startAutoRefresh();
     }
 
-    
+    private void initializeServiceData() {
+        try {
+            // Load all diagnostic services into the service map
+            List<MedicalService> allServices = medicalServiceService.getAllServices();
+            serviceMap = allServices.stream()
+                .filter(s -> s.getType() == AppointmentType.DIAGNOSTIC)
+                .collect(Collectors.toMap(MedicalService::getName, s -> s));
+
+            // Populate jComboBox2 with diagnostic services
+            jComboBox2.removeAllItems();
+            jComboBox2.addItem("Select a service...");
+
+            List<String> diagnosticServiceNames = serviceMap.keySet().stream()
+                .sorted()
+                .collect(Collectors.toList());
+
+            for (String serviceName : diagnosticServiceNames) {
+                jComboBox2.addItem(serviceName);
+            }
+
+            System.out.println("Loaded " + serviceMap.size() + " diagnostic services into dropdown");
+        } catch (Exception e) {
+            System.err.println("Error loading medical services: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     private void startAutoRefresh() {
         // Set the refresh interval in milliseconds (e.g., 30000 ms = 30 seconds)
         int refreshInterval = 30000; 
@@ -133,34 +158,6 @@ public class AppointmentPanel extends javax.swing.JPanel {
                 .map(p -> p.getPatientId() + " - " + p.getName())
                 .collect(Collectors.toList())));
         });
-        
-        // Add search listener for medical services
-        serviceSearchDropdown.addSearchListener(query -> {
-            List<MedicalService> filteredServices = medicalServiceService.getAllServices().stream()
-                .filter(s -> s.getType() == AppointmentType.DIAGNOSTIC)
-                .filter(s -> s.getName().toLowerCase().contains(query.toLowerCase()))
-                .collect(Collectors.toList());
-
-            // Preserve existing selected items while updating the map
-            Map<String, MedicalService> newServiceMap = filteredServices.stream()
-                .collect(Collectors.toMap(MedicalService::getName, s -> s));
-
-            // Preserve any currently selected service that might not be in the new search results
-            if (serviceSearchDropdown.getSelectedItem() != null && serviceMap.containsKey(serviceSearchDropdown.getSelectedItem())) {
-                newServiceMap.putIfAbsent(serviceSearchDropdown.getSelectedItem(), serviceMap.get(serviceSearchDropdown.getSelectedItem()));
-            }
-
-            serviceMap = newServiceMap;
-            serviceSearchDropdown.setPopupItems(new ArrayList<>(filteredServices.stream()
-                .map(MedicalService::getName)
-                .collect(Collectors.toList())));
-        });
-
-        // Initialize service map with all diagnostic services
-        List<MedicalService> allServices = medicalServiceService.getAllServices();
-        serviceMap = allServices.stream()
-            .filter(s -> s.getType() == AppointmentType.DIAGNOSTIC)
-            .collect(Collectors.toMap(MedicalService::getName, s -> s));
     }
     
     
@@ -250,8 +247,8 @@ private void addAppointment() {
 
         // Handle diagnostic appointments - require service selection
         if (type == AppointmentType.DIAGNOSTIC) {
-            String selectedServiceStr = serviceSearchDropdown.getSelectedItem();
-            if (selectedServiceStr == null) {
+            String selectedServiceStr = (String) jComboBox2.getSelectedItem();
+            if (selectedServiceStr == null || selectedServiceStr.equals("Select a service...")) {
                 JOptionPane.showMessageDialog(this, "A medical service must be selected for diagnostic appointments.", "Validation Error", JOptionPane.WARNING_MESSAGE);
                 return;
             }
@@ -306,7 +303,7 @@ private void addAppointment() {
     private void clearForm() {
         searchDropdown1.clearSelection();
         searchDropdown2.clearSelection();
-        serviceSearchDropdown.clearSelection();
+        jComboBox2.setSelectedIndex(0);
         jComboBox1.setSelectedIndex(0);
         dateTimePicker1.setDateTimePermissive(LocalDateTime.now().plusHours(1));
     }
@@ -322,7 +319,7 @@ private void addAppointment() {
         jLabel13.setVisible(!isDiagnostic);
 
         // Show/hide Service selector
-        serviceSearchDropdown.setVisible(isDiagnostic);
+        jComboBox2.setVisible(isDiagnostic);
         jLabel14.setVisible(isDiagnostic);
 
         if (isDiagnostic) {
@@ -330,7 +327,14 @@ private void addAppointment() {
                     .filter(s -> s.getType() == AppointmentType.DIAGNOSTIC)
                     .map(MedicalService::getName)
                     .collect(Collectors.toList());
-            serviceSearchDropdown.setPopupItems(diagnosticServices);
+            jComboBox2.removeAllItems();
+            jComboBox2.addItem("Select a service...");
+            for (String serviceName : diagnosticServices) {
+                jComboBox2.addItem(serviceName);
+            }
+        } else {
+            jComboBox2.removeAllItems();
+            jComboBox2.addItem("Select a service...");
         }
     }
     
@@ -490,12 +494,12 @@ private void addAppointment() {
             }
         });
 
-        jLabel14.setText("Search Service");
+        jLabel14.setText("Medical Service");
         jLabel14.setBackground(new java.awt.Color(51, 51, 51));
         jLabel14.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 14)); // NOI18N
         jLabel14.setForeground(new java.awt.Color(51, 51, 51));
 
-        jComboBox2.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        jComboBox2.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Select a service..." }));
 
         javax.swing.GroupLayout roundedPanel1Layout = new javax.swing.GroupLayout(roundedPanel1);
         roundedPanel1.setLayout(roundedPanel1Layout);
@@ -607,31 +611,31 @@ private void addAppointment() {
         roundedPanel2.setLayout(roundedPanel2Layout);
         roundedPanel2Layout.setHorizontalGroup(
             roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, roundedPanel2Layout.createSequentialGroup()
-                .addGap(21, 21, 21)
+            .addGroup(roundedPanel2Layout.createSequentialGroup()
+                .addGap(14, 14, 14)
                 .addGroup(roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane2)
                     .addGroup(roundedPanel2Layout.createSequentialGroup()
-                        .addComponent(jLabel10)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(searchbutton))
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 856, Short.MAX_VALUE)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, roundedPanel2Layout.createSequentialGroup()
-                        .addComponent(jLabel11)
-                        .addGap(0, 0, Short.MAX_VALUE)))
-                .addGap(20, 20, 20))
+                        .addGroup(roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel10)
+                            .addComponent(jLabel11))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 532, Short.MAX_VALUE)
+                        .addComponent(searchbutton)))
+                .addGap(14, 14, 14))
         );
         roundedPanel2Layout.setVerticalGroup(
             roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(roundedPanel2Layout.createSequentialGroup()
-                .addGap(24, 24, 24)
-                .addGroup(roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel10)
-                    .addComponent(searchbutton, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(12, 12, 12)
-                .addComponent(jLabel11)
-                .addGap(18, 18, 18)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 572, Short.MAX_VALUE)
-                .addContainerGap())
+                .addGap(14, 14, 14)
+                .addGroup(roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(roundedPanel2Layout.createSequentialGroup()
+                        .addComponent(jLabel10)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jLabel11))
+                    .addComponent(searchbutton))
+                .addGap(15, 15, 15)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 515, Short.MAX_VALUE)
+                .addGap(14, 14, 14))
         );
 
         jPanel4.add(roundedPanel2, java.awt.BorderLayout.CENTER);
