@@ -21,6 +21,7 @@ import javax.swing.Timer;
 import system.enums.AppointmentType;
 import system.enums.UserRole;
 import system.model.Appointment;
+import system.model.Facility;
 import system.model.MedicalService;
 import system.model.Patient;
 import system.model.User;
@@ -28,6 +29,7 @@ import system.patterns.mediator.AppointmentMediator;
 import system.patterns.mediator.AppointmentScheduler;
 import system.service.AppointmentService;
 import system.service.AuthenticationService;
+import system.service.FacilityService;
 import system.service.MedicalServiceService;
 import system.service.PatientService;
 import system.service.UserService;
@@ -46,9 +48,11 @@ public class AppointmentPanel extends javax.swing.JPanel {
     private final AppointmentService appointmentService;
     private final AppointmentMediator appointmentMediator;
     private final MedicalServiceService medicalServiceService;
+    private final FacilityService facilityService;
     private Map<String, Patient> patientMap;
     private Map<String, User> doctorMap;
     private Map<String, MedicalService> serviceMap;
+    private Map<String, Facility> facilityMap;
     private Timer refreshTimer;
 
     public AppointmentPanel() {
@@ -59,12 +63,15 @@ public class AppointmentPanel extends javax.swing.JPanel {
         this.appointmentService = new AppointmentService();
         this.appointmentMediator = new AppointmentScheduler();
         this.medicalServiceService = new MedicalServiceService();
+        this.facilityService = new FacilityService();
         this.patientMap = new HashMap<>();
         this.doctorMap = new HashMap<>();
         this.serviceMap = new HashMap<>();
-        
+        this.facilityMap = new HashMap<>();
+
         // Initialize service data first before setting up listeners
         initializeServiceData();
+        loadFacilityData(); // Add this call in the constructor
 
         configureUIForRole();
         configureDateTimePicker();
@@ -98,6 +105,29 @@ public class AppointmentPanel extends javax.swing.JPanel {
             System.out.println("Loaded " + serviceMap.size() + " diagnostic services into dropdown");
         } catch (Exception e) {
             System.err.println("Error loading medical services: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void loadFacilityData() {
+        try {
+            List<Facility> facilities = facilityService.getAllFacilities();
+            facilityMap = facilities.stream().collect(Collectors.toMap(Facility::getName, f -> f));
+
+            facilityComboxbox.removeAllItems();
+            facilityComboxbox.addItem("Select a facility...");
+
+            List<String> facilityNames = facilityMap.keySet().stream()
+                .sorted()
+                .collect(Collectors.toList());
+
+            for (String facilityName : facilityNames) {
+                facilityComboxbox.addItem(facilityName);
+            }
+
+            System.out.println("Loaded " + facilityMap.size() + " facilities into dropdown");
+        } catch (Exception e) {
+            System.err.println("Error loading facilities: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -274,16 +304,22 @@ private void addAppointment() {
             }
         }
 
-        // --- 4. CALL THE SIMPLIFIED MEDIATOR ---
-        // The UI no longer needs to calculate price or service name. It just provides the core selections.
-    boolean success = appointmentMediator.bookAppointment(
-        patient,
-        doctor,      // Correctly null for Diagnostics
-        type,
-        selectedDateTime,
-        linkedService // Pass the service object (it will be null for non-diagnostics)
-    );
-        // --- END OF FIX ---
+        // --- NEW: Get the selected facility ---
+        String selectedFacilityStr = (String) facilityComboxbox.getSelectedItem();
+        if (selectedFacilityStr == null || selectedFacilityStr.equals("Select a facility...")) {
+             JOptionPane.showMessageDialog(this, "Please select a facility.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+             return;
+        }
+        Facility facility = facilityMap.get(selectedFacilityStr);
+        if (facility == null) {
+            JOptionPane.showMessageDialog(this, "Selected facility not found. Please select a facility again.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        // --- END NEW ---
+
+        // --- 4. CALL THE COMPLETE MEDIATOR ---
+        // Call the new, complete mediator method
+        boolean success = appointmentMediator.bookAppointment(patient, doctor, type, selectedDateTime, linkedService, facility);
 
         // --- 5. PROVIDE FEEDBACK ---
         if (success) {
@@ -305,6 +341,7 @@ private void addAppointment() {
         searchDropdown2.clearSelection();
         jComboBox2.setSelectedIndex(0);
         jComboBox1.setSelectedIndex(0);
+        facilityComboxbox.setSelectedIndex(0);
         dateTimePicker1.setDateTimePermissive(LocalDateTime.now().plusHours(1));
     }
     
@@ -371,6 +408,8 @@ private void addAppointment() {
         jComboBox1 = new javax.swing.JComboBox<>();
         jLabel14 = new javax.swing.JLabel();
         jComboBox2 = new javax.swing.JComboBox<>();
+        facilityComboxbox = new javax.swing.JComboBox<>();
+        jLabel15 = new javax.swing.JLabel();
         jPanel4 = new javax.swing.JPanel();
         roundedPanel2 = new system.ui.components.RoundedPanel();
         jLabel10 = new javax.swing.JLabel();
@@ -403,7 +442,7 @@ private void addAppointment() {
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel2)
                     .addComponent(jLabel1))
-                .addContainerGap(967, Short.MAX_VALUE))
+                .addContainerGap(677, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -494,12 +533,19 @@ private void addAppointment() {
             }
         });
 
-        jLabel14.setText("Medical Service");
+        jLabel14.setText("Facility");
         jLabel14.setBackground(new java.awt.Color(51, 51, 51));
         jLabel14.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 14)); // NOI18N
         jLabel14.setForeground(new java.awt.Color(51, 51, 51));
 
-        jComboBox2.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Select a service..." }));
+        jComboBox2.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        facilityComboxbox.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        jLabel15.setBackground(new java.awt.Color(51, 51, 51));
+        jLabel15.setFont(new java.awt.Font("Inter 18pt SemiBold", 0, 14)); // NOI18N
+        jLabel15.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel15.setText("Search Service");
 
         javax.swing.GroupLayout roundedPanel1Layout = new javax.swing.GroupLayout(roundedPanel1);
         roundedPanel1.setLayout(roundedPanel1Layout);
@@ -509,19 +555,23 @@ private void addAppointment() {
                 .addGap(13, 13, 13)
                 .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(roundedPanel1Layout.createSequentialGroup()
+                        .addComponent(jLabel15)
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addGroup(roundedPanel1Layout.createSequentialGroup()
                         .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel13)
                             .addComponent(jLabel12))
                         .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                    .addGroup(roundedPanel1Layout.createSequentialGroup()
-                        .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(dateTimePicker1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(searchDropdown1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jComboBox1, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(searchDropdown2, javax.swing.GroupLayout.DEFAULT_SIZE, 312, Short.MAX_VALUE)
-                            .addComponent(jComboBox2, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addGroup(roundedPanel1Layout.createSequentialGroup()
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, roundedPanel1Layout.createSequentialGroup()
+                        .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(facilityComboxbox, javax.swing.GroupLayout.Alignment.LEADING, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(dateTimePicker1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(searchDropdown1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jComboBox1, javax.swing.GroupLayout.Alignment.LEADING, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jButton3, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(searchDropdown2, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 312, Short.MAX_VALUE)
+                            .addComponent(jComboBox2, javax.swing.GroupLayout.Alignment.LEADING, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, roundedPanel1Layout.createSequentialGroup()
                                 .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addComponent(jLabel5)
                                     .addComponent(jLabel4)
@@ -555,12 +605,16 @@ private void addAppointment() {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(dateTimePicker1, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jLabel14)
+                .addComponent(jLabel15)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jComboBox2, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jLabel14)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(facilityComboxbox, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(28, 28, 28))
+                .addGap(31, 31, 31))
         );
 
         jPanel2.add(roundedPanel1);
@@ -611,31 +665,31 @@ private void addAppointment() {
         roundedPanel2.setLayout(roundedPanel2Layout);
         roundedPanel2Layout.setHorizontalGroup(
             roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(roundedPanel2Layout.createSequentialGroup()
-                .addGap(14, 14, 14)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, roundedPanel2Layout.createSequentialGroup()
+                .addGap(21, 21, 21)
                 .addGroup(roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane2)
                     .addGroup(roundedPanel2Layout.createSequentialGroup()
-                        .addGroup(roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel10)
-                            .addComponent(jLabel11))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 532, Short.MAX_VALUE)
-                        .addComponent(searchbutton)))
-                .addGap(14, 14, 14))
+                        .addComponent(jLabel10)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(searchbutton))
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 566, Short.MAX_VALUE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, roundedPanel2Layout.createSequentialGroup()
+                        .addComponent(jLabel11)
+                        .addGap(0, 0, Short.MAX_VALUE)))
+                .addGap(20, 20, 20))
         );
         roundedPanel2Layout.setVerticalGroup(
             roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(roundedPanel2Layout.createSequentialGroup()
-                .addGap(14, 14, 14)
-                .addGroup(roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(roundedPanel2Layout.createSequentialGroup()
-                        .addComponent(jLabel10)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabel11))
-                    .addComponent(searchbutton))
-                .addGap(15, 15, 15)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 515, Short.MAX_VALUE)
-                .addGap(14, 14, 14))
+                .addGap(24, 24, 24)
+                .addGroup(roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel10)
+                    .addComponent(searchbutton, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(12, 12, 12)
+                .addComponent(jLabel11)
+                .addGap(18, 18, 18)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 572, Short.MAX_VALUE)
+                .addContainerGap())
         );
 
         jPanel4.add(roundedPanel2, java.awt.BorderLayout.CENTER);
@@ -663,6 +717,7 @@ private void addAppointment() {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private com.github.lgooddatepicker.components.DateTimePicker dateTimePicker1;
+    private javax.swing.JComboBox<String> facilityComboxbox;
     private javax.swing.JButton jButton3;
     private javax.swing.JComboBox<String> jComboBox1;
     private javax.swing.JComboBox<String> jComboBox2;
@@ -672,6 +727,7 @@ private void addAppointment() {
     private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel13;
     private javax.swing.JLabel jLabel14;
+    private javax.swing.JLabel jLabel15;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;

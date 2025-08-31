@@ -5,22 +5,27 @@
 package system.ui.panels;
 
 import com.github.lgooddatepicker.components.TimePicker;
+import java.awt.BorderLayout;
 import java.awt.Font;
-import java.time.LocalTime;
-import java.util.ArrayList;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
-import javax.swing.SwingConstants;
+import javax.swing.JPanel;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import system.enums.DayOfWeek;
 import system.model.DoctorSchedule;
+import system.model.Facility;
 import system.model.User;
+import system.service.FacilityService;
 import system.service.ScheduleService;
 import system.service.UserService;
 
@@ -32,12 +37,12 @@ public class DoctorSchedulePanel extends javax.swing.JPanel {
 
     private final UserService userService;
     private final ScheduleService scheduleService;
-
-    // Data maps for linking UI strings to objects
+    private final FacilityService facilityService;
     private User selectedDoctor;
+    private Facility selectedFacility;
     private List<DoctorSchedule> currentSchedule;
+    private final Map<String, Facility> facilityMap = new HashMap<>();
 
-    // Schedule editing components
     private final Map<DayOfWeek, JCheckBox> dayCheckboxes = new HashMap<>();
     private final Map<DayOfWeek, TimePicker> startTimePickers = new HashMap<>();
     private final Map<DayOfWeek, TimePicker> endTimePickers = new HashMap<>();
@@ -45,347 +50,148 @@ public class DoctorSchedulePanel extends javax.swing.JPanel {
     public DoctorSchedulePanel() {
         this.userService = new UserService();
         this.scheduleService = new ScheduleService();
+        this.facilityService = new FacilityService();
 
-        initComponents(); // NetBeans-generated components
-
-        // Configure UI components after they have been created
+        initComponents();
         configureComponents();
-
-        // Add listeners
         addListeners();
-
-        // Create schedule editing controls
         createScheduleEditingPanel();
+        loadFacilities();
     }
 
     private void configureComponents() {
-        // Set up the JTable with the correct columns for schedule display
-        DefaultTableModel model = new DefaultTableModel(
-            new Object[]{"Day", "Available", "Start Time", "End Time"}, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; // Keep table non-editable, we'll use separate controls
-            }
+        DefaultTableModel model = new DefaultTableModel(new Object[]{"Day", "Available", "Start Time", "End Time"}, 0) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
         };
         jTable1.setModel(model);
         jTable1.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
-
-        // Center-align the text in the table columns
-        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-        for (int i = 0; i < jTable1.getColumnCount(); i++) {
-            jTable1.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+        roundedPanel2.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        jButton2.setEnabled(false); // Disable save button initially
+    }
+    
+    private void loadFacilities() {
+        List<Facility> facilities = facilityService.getAllFacilities();
+        jComboBox1.removeAllItems(); // Clear existing items
+        jComboBox1.addItem("Select a Facility..."); // Add placeholder
+        for(Facility f : facilities) {
+            facilityMap.put(f.getName(), f);
+            jComboBox1.addItem(f.getName());
         }
-
-        // Set placeholder text for doctor search
-        roundedTextField1.setText("");
-
-        // Initially disable save button
-        jButton2.setEnabled(false);
-
-        // Add padding to roundedPanel2 to pull content away from rounded edges
-        roundedPanel2.setBorder(javax.swing.BorderFactory.createEmptyBorder(20, 20, 20, 20));
     }
 
     private void addListeners() {
-        // Listener for the search text field
+        jButton1.addActionListener(e -> searchDoctors());
+        jButton2.addActionListener(e -> onSaveSchedule());
+        jComboBox1.addActionListener(e -> onSelectionChange());
+        
         roundedTextField1.getDocument().addDocumentListener(new DocumentListener() {
             public void insertUpdate(DocumentEvent e) { searchDoctors(); }
             public void removeUpdate(DocumentEvent e) { searchDoctors(); }
-            public void changedUpdate(DocumentEvent e) { /* Not needed */ }
+            public void changedUpdate(DocumentEvent e) {}
         });
-
-        // The search button to search doctors
-        jButton1.addActionListener(e -> searchDoctors());
-
-        // Save button to save schedule changes
-        jButton2.addActionListener(e -> onSaveSchedule());
     }
 
     private void createScheduleEditingPanel() {
-        // Add schedule editing controls to the right panel below the table
-        javax.swing.JPanel editPanel = new javax.swing.JPanel();
-        editPanel.setLayout(new java.awt.GridBagLayout());
-        editPanel.setBackground(new java.awt.Color(255, 255, 255));
-        editPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(
-            javax.swing.BorderFactory.createEtchedBorder(),
-            "Edit Schedule",
-            javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION,
-            javax.swing.border.TitledBorder.DEFAULT_POSITION,
-            new java.awt.Font("Inter 18pt SemiBold", Font.PLAIN, 16)
-        ));
-
-        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
-        gbc.insets = new java.awt.Insets(5, 5, 5, 5);
-        gbc.anchor = java.awt.GridBagConstraints.WEST;
-
-        // Create editing controls for each day
+        JPanel editPanel = new JPanel(new GridBagLayout());
+        editPanel.setOpaque(false);
+        editPanel.setBorder(BorderFactory.createTitledBorder("Edit Schedule Details"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.WEST;
+        
         int row = 0;
         for (DayOfWeek day : DayOfWeek.values()) {
-            gbc.gridy = row;
-
-            // Day label
-            gbc.gridx = 0;
-            gbc.weightx = 0.2;
-            javax.swing.JLabel dayLabel = new javax.swing.JLabel(day.toString());
-            dayLabel.setFont(new Font("Inter", Font.BOLD, 12));
-            editPanel.add(dayLabel, gbc);
-
-            // Available checkbox
-            gbc.gridx = 1;
-            gbc.weightx = 0.1;
-            JCheckBox availableCheckbox = new JCheckBox("Available");
-            availableCheckbox.setBackground(new java.awt.Color(255, 255, 255));
-            dayCheckboxes.put(day, availableCheckbox);
-            editPanel.add(availableCheckbox, gbc);
-
-            // Start time picker
-            gbc.gridx = 2;
-            gbc.weightx = 0.3;
-            TimePicker startTimePicker = new TimePicker();
-            startTimePicker.setTime(LocalTime.of(9, 0)); // Default 9 AM
-            startTimePickers.put(day, startTimePicker);
-            editPanel.add(startTimePicker, gbc);
-
-            // "to" label
-            gbc.gridx = 3;
-            gbc.weightx = 0.05;
-            editPanel.add(new javax.swing.JLabel("to"), gbc);
-
-            // End time picker
-            gbc.gridx = 4;
-            gbc.weightx = 0.3;
-            TimePicker endTimePicker = new TimePicker();
-            endTimePicker.setTime(LocalTime.of(17, 0)); // Default 5 PM
-            endTimePickers.put(day, endTimePicker);
-            editPanel.add(endTimePicker, gbc);
-
-            // Add listener to checkbox to enable/disable time pickers
-            availableCheckbox.addActionListener(e -> {
-                boolean isAvailable = availableCheckbox.isSelected();
-                startTimePicker.setEnabled(isAvailable);
-                endTimePicker.setEnabled(isAvailable);
-                updateScheduleDisplay(); // Update the table display
+            gbc.gridy = row++;
+            gbc.gridx = 0; editPanel.add(new JLabel(day.toString()), gbc);
+            gbc.gridx = 1; JCheckBox cb = new JCheckBox("Available"); dayCheckboxes.put(day, cb); editPanel.add(cb, gbc);
+            gbc.gridx = 2; TimePicker start = new TimePicker(); startTimePickers.put(day, start); editPanel.add(start, gbc);
+            gbc.gridx = 3; editPanel.add(new JLabel("to"), gbc);
+            gbc.gridx = 4; TimePicker end = new TimePicker(); endTimePickers.put(day, end); editPanel.add(end, gbc);
+            
+            cb.addActionListener(e -> {
+                boolean isSelected = cb.isSelected();
+                startTimePickers.get(day).setEnabled(isSelected);
+                endTimePickers.get(day).setEnabled(isSelected);
             });
-
-            // Initially disable time pickers
-            startTimePicker.setEnabled(false);
-            endTimePicker.setEnabled(false);
-
-            row++;
         }
-
-        // Add the edit panel to the right side below the table
-        roundedPanel2.add(editPanel, java.awt.BorderLayout.SOUTH);
+        roundedPanel2.add(editPanel, BorderLayout.SOUTH);
     }
 
     private void searchDoctors() {
         String searchText = roundedTextField1.getText().trim();
-        DefaultTableModel tableModel = (DefaultTableModel) jTable1.getModel();
-        tableModel.setRowCount(0); // Clear the table
-
-        // Reset doctor info labels
-        jLabel7.setText("Doctor Username :");
-        jLabel8.setText("Doctor Name :");
-
-        if (searchText.isEmpty()) {
-            clearScheduleEditing();
-            return; // Don't search if field is empty
-        }
-
-        List<User> doctors = userService.searchDoctorsByName(searchText, 10);
-
-        if (doctors.isEmpty()) {
-            tableModel.addRow(new Object[]{"No doctors found matching: " + searchText, "", "", ""});
-            clearScheduleEditing();
-        } else {
-            // Display first doctor's info and schedule
-            User firstDoctor = doctors.get(0);
-            onDoctorSelected(firstDoctor);
+        clearSchedulePanel();
+        if (searchText.isEmpty()) return;
+        List<User> doctors = userService.searchDoctorsByName(searchText, 1);
+        if (!doctors.isEmpty()) {
+            onDoctorSelected(doctors.get(0));
         }
     }
+    
+    private void onDoctorSelected(User doctor) {
+        this.selectedDoctor = doctor;
+        jLabel7.setText("Doctor Username: " + doctor.getUsername());
+        jLabel8.setText("Doctor Name: Dr. " + doctor.getFirstName() + " " + doctor.getLastName());
+        onSelectionChange(); // Trigger schedule fetch
+    }
 
-    private void onDoctorSelected(User selectedDoctor) {
-        DefaultTableModel tableModel = (DefaultTableModel) jTable1.getModel();
-        tableModel.setRowCount(0); // Clear the table
-
-        if (selectedDoctor == null) {
-            clearScheduleEditing();
+    private void onSelectionChange() {
+        String selectedFacilityStr = (String) jComboBox1.getSelectedItem();
+        if (selectedDoctor == null || selectedFacilityStr == null || selectedFacilityStr.equals("Select a Facility...")) {
+            clearSchedulePanel();
             return;
         }
-
-        this.selectedDoctor = selectedDoctor;
-
-        // Update the info labels with actual data
-        jLabel7.setText("Doctor Username : " + selectedDoctor.getUsername());
-        jLabel8.setText("Doctor Name : Dr. " + selectedDoctor.getFirstName() + " " + selectedDoctor.getLastName());
-
-        // Fetch and display the schedule for the selected doctor
-        this.currentSchedule = scheduleService.getScheduleForDoctor(selectedDoctor);
-
-        if (currentSchedule.isEmpty()) {
-            // Create default schedule for all days
-            currentSchedule = createDefaultSchedule(selectedDoctor);
-        }
-
-        // Populate both the table and editing controls
+        
+        this.selectedFacility = facilityMap.get(selectedFacilityStr);
+        if (this.selectedFacility == null) return;
+        
+        this.currentSchedule = scheduleService.getScheduleForDoctorAtFacility(this.selectedDoctor, this.selectedFacility);
         populateScheduleData();
-
-        jButton2.setEnabled(true); // Enable save button
+        jButton2.setEnabled(true);
     }
-
+    
     private void populateScheduleData() {
-        DefaultTableModel tableModel = (DefaultTableModel) jTable1.getModel();
-        tableModel.setRowCount(0); // Clear the table
-
-        // Populate the table and editing controls with schedule data
+        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+        model.setRowCount(0);
         for (DoctorSchedule schedule : currentSchedule) {
             DayOfWeek day = schedule.getDayOfWeek();
+            model.addRow(new Object[]{day, schedule.isAvailable() ? "Yes" : "No", 
+                schedule.isAvailable() ? schedule.getStartTime() : "N/A", 
+                schedule.isAvailable() ? schedule.getEndTime() : "N/A"});
 
-            // Update table
-            tableModel.addRow(new Object[]{
-                day.toString(),
-                schedule.isAvailable() ? "Yes" : "No",
-                schedule.getStartTime() != null ? schedule.getStartTime().toString() : "Not Set",
-                schedule.getEndTime() != null ? schedule.getEndTime().toString() : "Not Set"
-            });
-
-            // Update editing controls
-            JCheckBox checkbox = dayCheckboxes.get(day);
-            TimePicker startPicker = startTimePickers.get(day);
-            TimePicker endPicker = endTimePickers.get(day);
-
-            checkbox.setSelected(schedule.isAvailable());
-            if (schedule.getStartTime() != null) {
-                startPicker.setTime(schedule.getStartTime());
-            }
-            if (schedule.getEndTime() != null) {
-                endPicker.setTime(schedule.getEndTime());
-            }
-
-            // Enable/disable time pickers based on availability
-            startPicker.setEnabled(schedule.isAvailable());
-            endPicker.setEnabled(schedule.isAvailable());
+            dayCheckboxes.get(day).setSelected(schedule.isAvailable());
+            startTimePickers.get(day).setTime(schedule.getStartTime());
+            endTimePickers.get(day).setTime(schedule.getEndTime());
+            startTimePickers.get(day).setEnabled(schedule.isAvailable());
+            endTimePickers.get(day).setEnabled(schedule.isAvailable());
         }
     }
 
-    private void updateScheduleDisplay() {
-        if (selectedDoctor == null || currentSchedule == null) return;
-
-        // Update the schedule objects with current UI values
-        for (DoctorSchedule schedule : currentSchedule) {
-            DayOfWeek day = schedule.getDayOfWeek();
-            JCheckBox checkbox = dayCheckboxes.get(day);
-            TimePicker startPicker = startTimePickers.get(day);
-            TimePicker endPicker = endTimePickers.get(day);
-
-            schedule.setAvailable(checkbox.isSelected());
-            if (checkbox.isSelected()) {
-                schedule.setStartTime(startPicker.getTime());
-                schedule.setEndTime(endPicker.getTime());
-            }
-        }
-
-        // Refresh the table display
-        DefaultTableModel tableModel = (DefaultTableModel) jTable1.getModel();
-        tableModel.setRowCount(0);
-
-        for (DoctorSchedule schedule : currentSchedule) {
-            tableModel.addRow(new Object[]{
-                schedule.getDayOfWeek().toString(),
-                schedule.isAvailable() ? "Yes" : "No",
-                schedule.getStartTime() != null ? schedule.getStartTime().toString() : "Not Set",
-                schedule.getEndTime() != null ? schedule.getEndTime().toString() : "Not Set"
-            });
-        }
-    }
-
-    private void clearScheduleEditing() {
-        selectedDoctor = null;
-        currentSchedule = null;
-        jButton2.setEnabled(false);
-
-        // Clear and disable all editing controls
+    private void clearSchedulePanel() {
+        ((DefaultTableModel) jTable1.getModel()).setRowCount(0);
         for (DayOfWeek day : DayOfWeek.values()) {
             dayCheckboxes.get(day).setSelected(false);
             startTimePickers.get(day).setEnabled(false);
             endTimePickers.get(day).setEnabled(false);
         }
-    }
-
-    private List<DoctorSchedule> createDefaultSchedule(User doctor) {
-        List<DoctorSchedule> defaultSchedule = new ArrayList<>();
-        for (DayOfWeek day : DayOfWeek.values()) {
-            DoctorSchedule schedule = new DoctorSchedule();
-            schedule.setDoctor(doctor);
-            schedule.setDayOfWeek(day);
-            schedule.setAvailable(false);
-            schedule.setStartTime(LocalTime.of(9, 0)); // Default 9 AM
-            schedule.setEndTime(LocalTime.of(17, 0));  // Default 5 PM
-            defaultSchedule.add(schedule);
-        }
-        return defaultSchedule;
+        jButton2.setEnabled(false);
     }
 
     private void onSaveSchedule() {
-        if (selectedDoctor == null || currentSchedule == null) {
-            JOptionPane.showMessageDialog(this, "Please select a doctor first.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
+        if (selectedDoctor == null || currentSchedule == null) return;
+        
+        for (DoctorSchedule schedule : currentSchedule) {
+            DayOfWeek day = schedule.getDayOfWeek();
+            schedule.setAvailable(dayCheckboxes.get(day).isSelected());
+            schedule.setStartTime(startTimePickers.get(day).getTime());
+            schedule.setEndTime(endTimePickers.get(day).getTime());
         }
-
-        // Validate schedule before saving
-        if (!validateSchedule()) {
-            return;
-        }
-
-        // Update schedule with current UI values
-        updateScheduleDisplay();
-
-        boolean success = scheduleService.saveFullSchedule(currentSchedule);
-
-        if (success) {
-            JOptionPane.showMessageDialog(this,
-                "Schedule for Dr. " + selectedDoctor.getLastName() + " saved successfully!",
-                "Success",
-                JOptionPane.INFORMATION_MESSAGE);
-            // Refresh the display
-            populateScheduleData();
+        
+        if (scheduleService.saveFullSchedule(currentSchedule)) {
+            JOptionPane.showMessageDialog(this, "Schedule saved successfully!");
+            populateScheduleData(); // Refresh table
         } else {
-            JOptionPane.showMessageDialog(this,
-                "Failed to save the schedule.",
-                "Database Error",
-                JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Failed to save schedule.", "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    private boolean validateSchedule() {
-        for (DayOfWeek day : DayOfWeek.values()) {
-            JCheckBox checkbox = dayCheckboxes.get(day);
-            if (checkbox.isSelected()) {
-                TimePicker startPicker = startTimePickers.get(day);
-                TimePicker endPicker = endTimePickers.get(day);
-
-                LocalTime startTime = startPicker.getTime();
-                LocalTime endTime = endPicker.getTime();
-
-                if (startTime == null || endTime == null) {
-                    JOptionPane.showMessageDialog(this,
-                        "Please set both start and end times for " + day.toString(),
-                        "Validation Error",
-                        JOptionPane.WARNING_MESSAGE);
-                    return false;
-                }
-
-                if (startTime.isAfter(endTime) || startTime.equals(endTime)) {
-                    JOptionPane.showMessageDialog(this,
-                        "Start time must be before end time for " + day.toString(),
-                        "Validation Error",
-                        JOptionPane.WARNING_MESSAGE);
-                    return false;
-                }
-            }
-        }
-        return true;
     }
 
     @SuppressWarnings("unchecked")
@@ -408,6 +214,7 @@ public class DoctorSchedulePanel extends javax.swing.JPanel {
         jLabel7 = new javax.swing.JLabel();
         jLabel8 = new javax.swing.JLabel();
         jButton2 = new javax.swing.JButton();
+        jComboBox1 = new javax.swing.JComboBox<>();
         roundedPanel2 = new system.ui.components.RoundedPanel();
         jLabel9 = new javax.swing.JLabel();
         jLabel10 = new javax.swing.JLabel();
@@ -517,6 +324,9 @@ public class DoctorSchedulePanel extends javax.swing.JPanel {
         jButton2.setFont(new java.awt.Font("Inter 18pt SemiBold", Font.PLAIN, 14));
         jButton2.setForeground(new java.awt.Color(255, 255, 255));
 
+        jComboBox1.setFont(new java.awt.Font("Inter", Font.PLAIN, 12));
+        jComboBox1.setBackground(new java.awt.Color(255, 255, 255));
+
         javax.swing.GroupLayout roundedPanel1Layout = new javax.swing.GroupLayout(roundedPanel1);
         roundedPanel1.setLayout(roundedPanel1Layout);
         roundedPanel1Layout.setHorizontalGroup(
@@ -533,7 +343,8 @@ public class DoctorSchedulePanel extends javax.swing.JPanel {
                     .addGroup(roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                         .addComponent(jButton2, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(jButton1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(roundedTextField1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 312, Short.MAX_VALUE)))
+                        .addComponent(roundedTextField1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 312, Short.MAX_VALUE)
+                        .addComponent(jComboBox1, javax.swing.GroupLayout.Alignment.LEADING, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                 .addGap(14, 14, 14))
         );
         roundedPanel1Layout.setVerticalGroup(
@@ -549,6 +360,8 @@ public class DoctorSchedulePanel extends javax.swing.JPanel {
                 .addComponent(roundedTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(jLabel6)
                 .addGap(18, 18, 18)
@@ -632,6 +445,7 @@ public class DoctorSchedulePanel extends javax.swing.JPanel {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
+    private javax.swing.JComboBox<String> jComboBox1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;

@@ -58,12 +58,27 @@ public class Appointment implements Visitable {
     @JoinColumn(name = "payment_confirmed_by_username")
     private User paymentConfirmedBy;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "facility_id", nullable = false)
+    private Facility facility;
+
     public Appointment() {}
+
+    public Facility getFacility() {
+        return facility;
+    }
+
+    public void setFacility(Facility facility) {
+        this.facility = facility;
+    }
 
     /**
      * Final, flexible constructor used by the AppointmentService.
      */
-    public Appointment(Patient patient, User doctor, User scheduledBy, AppointmentType type, String serviceName, double price, LocalDateTime dateTime) {
+    public Appointment(Patient patient, User doctor, User scheduledBy, AppointmentType type,
+                       String serviceName, double price, LocalDateTime dateTime,
+                       MedicalService service, Facility facility) { // Add facility here
+
         this.patient = patient;
         this.doctor = doctor;
         this.scheduledBy = scheduledBy;
@@ -71,10 +86,8 @@ public class Appointment implements Visitable {
         this.serviceName = serviceName;
         this.price = price;
         this.appointmentDateTime = dateTime;
-
-        // This constructor can be called for Diagnostics, but the linked service will be null.
-        // The service layer will be responsible for setting it.
-        this.medicalService = null;
+        this.medicalService = service;
+        this.facility = facility; // <<<--- ASSIGN THE NEW FIELD
 
         // Set initial status based on the appointment type
         switch (type) {
@@ -84,6 +97,9 @@ public class Appointment implements Visitable {
                 break;
             case SURGERY:
                 this.status = "PENDING_CONFIRMATION";
+                break;
+            default:
+                this.status = "SCHEDULED";
                 break;
         }
     }

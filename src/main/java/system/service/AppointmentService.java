@@ -6,10 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import system.enums.AppointmentType;
 import system.enums.PaymentMethod;
-import system.model.Appointment;
-import system.model.MedicalService;
-import system.model.Patient;
-import system.model.User;
+import system.model.*;
 
 /**
  *
@@ -18,20 +15,14 @@ import system.model.User;
 public class AppointmentService {
 
 
-    public Appointment createAppointment(Patient patient, User doctor, User scheduledBy, AppointmentType type, String serviceName, double price, LocalDateTime dateTime, MedicalService service) {
+    public Appointment createAppointment(Patient patient, User doctor, User scheduledBy, AppointmentType type,
+                                         String serviceName, double price, LocalDateTime dateTime,
+                                         MedicalService service, Facility facility) {
         EntityManager em = PersistenceManager.getInstance().getEntityManager();
         try {
             em.getTransaction().begin();
-
-            // Create the appointment using the correct constructor
-            Appointment newAppointment = new Appointment(patient, doctor, scheduledBy, type, serviceName, price, dateTime);
-
-            // If a MedicalService object was provided (only for Diagnostics), we need to make sure it's managed by JPA.
-            if (service != null && service.getId() != null) {
-                MedicalService managedService = em.find(MedicalService.class, service.getId());
-                newAppointment.setMedicalService(managedService);
-            }
-
+            Appointment newAppointment = new Appointment(patient, doctor, scheduledBy, type,
+                    serviceName, price, dateTime, service, facility);
             em.persist(newAppointment);
             em.getTransaction().commit();
             return newAppointment;
@@ -40,7 +31,7 @@ public class AppointmentService {
             e.printStackTrace();
             return null;
         } finally {
-            if (em != null) em.close();
+            em.close();
         }
     }
 

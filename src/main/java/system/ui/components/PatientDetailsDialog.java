@@ -117,7 +117,6 @@ private final Patient patient;
             jTextArea1.setText("ERROR: No user is logged in.");
             return;
         }
-
         log("--- Initiating Record Fetch ---");
         log("User: " + currentUser.getUsername() + " (Role: " + currentUser.getRole() + ")");
         log("Target Patient: " + patient.getPatientId() + "\n");
@@ -141,6 +140,10 @@ private final Patient patient;
         log("\n--- Final Output Received by UI ---");
         jTextArea1.append("\n" + finalDetails);
     }//GEN-LAST:event_jButton1ActionPerformed
+
+
+
+
 
     private void log(String message) {
         jTextArea1.append(message + "\n");

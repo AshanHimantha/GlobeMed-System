@@ -5,6 +5,7 @@ import jakarta.persistence.NoResultException;
 import jakarta.persistence.TypedQuery;
 import system.enums.DayOfWeek;
 import system.model.DoctorSchedule;
+import system.model.Facility;
 import system.model.User;
 
 import java.time.LocalDateTime;
@@ -16,74 +17,60 @@ import java.util.Map;
 
 public class ScheduleService {
 
-    public boolean isDoctorWorking(User doctor, LocalDateTime dateTime) {
+    /**
+     * Checks if a doctor is on schedule to work at a specific facility at a given date and time.
+     * @param doctor The doctor to check.
+     * @param dateTime The date and time of the potential appointment.
+     * @param facility The facility where the appointment would take place.
+     * @return true if the doctor is scheduled and available, false otherwise.
+     */
+    public boolean isDoctorWorkingAtFacility(User doctor, LocalDateTime dateTime, Facility facility) {
         EntityManager em = PersistenceManager.getInstance().getEntityManager();
         try {
-            // Convert Java's DayOfWeek to our enum
             DayOfWeek day = DayOfWeek.valueOf(dateTime.getDayOfWeek().toString());
             LocalTime time = dateTime.toLocalTime();
 
-            TypedQuery<DoctorSchedule> query = em.createQuery(
-                    "SELECT ds FROM DoctorSchedule ds WHERE ds.doctor = :doctor " +
-                            "AND ds.dayOfWeek = :day AND ds.isAvailable = true " +
-                            "AND :time BETWEEN ds.startTime AND ds.endTime",
-                    DoctorSchedule.class
-            );
+            TypedQuery<Long> query = em.createQuery(
+                "SELECT COUNT(ds) FROM DoctorSchedule ds WHERE ds.doctor = :doctor " +
+                "AND ds.facility = :facility AND ds.dayOfWeek = :day AND ds.isAvailable = true " +
+                "AND :time BETWEEN ds.startTime AND ds.endTime", Long.class);
             query.setParameter("doctor", doctor);
+            query.setParameter("facility", facility);
             query.setParameter("day", day);
             query.setParameter("time", time);
-
-            // If we find at least one matching schedule, the doctor is working.
-            return !query.getResultList().isEmpty();
-        } catch (NoResultException e) {
-            return false; // No schedule found for that day
+            return query.getSingleResult() > 0;
         } finally {
             if (em != null) em.close();
         }
     }
 
     /**
-     * Helper method to create and save a schedule entry.
-     * To be used during initial database setup.
+     * Retrieves the full weekly schedule for a specific doctor at a specific facility.
+     * If a schedule for a day doesn't exist, it creates a default, "unavailable" entry.
+     * @param doctor The doctor whose schedule is needed.
+     * @param facility The facility for which to fetch the schedule.
+     * @return A List containing exactly 7 DoctorSchedule objects.
      */
-    public void createSchedule(DoctorSchedule schedule) {
-        EntityManager em = PersistenceManager.getInstance().getEntityManager();
-        try {
-            em.getTransaction().begin();
-            em.persist(schedule);
-            em.getTransaction().commit();
-        } catch (Exception e) {
-            if (em.getTransaction().isActive()) em.getTransaction().rollback();
-            e.printStackTrace();
-        } finally {
-            if (em != null) em.close();
-        }
-    }
-
-    public List<DoctorSchedule> getScheduleForDoctor(User doctor) {
+    public List<DoctorSchedule> getScheduleForDoctorAtFacility(User doctor, Facility facility) {
         EntityManager em = PersistenceManager.getInstance().getEntityManager();
         List<DoctorSchedule> finalSchedule = new ArrayList<>();
         try {
             TypedQuery<DoctorSchedule> query = em.createQuery(
-                    "SELECT ds FROM DoctorSchedule ds WHERE ds.doctor = :doctor",
-                    DoctorSchedule.class
+                "SELECT ds FROM DoctorSchedule ds WHERE ds.doctor = :doctor AND ds.facility = :facility",
+                DoctorSchedule.class
             );
             query.setParameter("doctor", doctor);
+            query.setParameter("facility", facility);
             List<DoctorSchedule> existingSchedules = query.getResultList();
 
-            // Use a Map for easy lookup of existing schedules
             Map<DayOfWeek, DoctorSchedule> scheduleMap = new EnumMap<>(DayOfWeek.class);
-            for (DoctorSchedule ds : existingSchedules) {
-                scheduleMap.put(ds.getDayOfWeek(), ds);
-            }
+            existingSchedules.forEach(ds -> scheduleMap.put(ds.getDayOfWeek(), ds));
 
-            // Iterate through all days of the week to build a complete 7-day schedule
             for (DayOfWeek day : DayOfWeek.values()) {
                 if (scheduleMap.containsKey(day)) {
                     finalSchedule.add(scheduleMap.get(day));
                 } else {
-                    // If no schedule exists for this day, create a default "unavailable" one
-                    DoctorSchedule defaultSchedule = new DoctorSchedule(doctor, day, LocalTime.of(9, 0), LocalTime.of(17, 0));
+                    DoctorSchedule defaultSchedule = new DoctorSchedule(doctor, facility, day, LocalTime.of(9, 0), LocalTime.of(17, 0));
                     defaultSchedule.setAvailable(false);
                     finalSchedule.add(defaultSchedule);
                 }
@@ -94,23 +81,18 @@ public class ScheduleService {
         }
     }
 
-    // --- NEW METHOD 2 ---
     /**
-     * Saves or updates an entire weekly schedule for a doctor in a single transaction.
-     *
+     * Saves or updates an entire weekly schedule for a doctor/facility pair in a single transaction.
      * @param updatedSchedules A list of 7 DoctorSchedule objects.
      * @return true if the save was successful, false otherwise.
      */
     public boolean saveFullSchedule(List<DoctorSchedule> updatedSchedules) {
-        if (updatedSchedules == null || updatedSchedules.size() != 7) {
-            return false; // Invalid input
-        }
+        if (updatedSchedules == null || updatedSchedules.isEmpty()) return false;
+        
         EntityManager em = PersistenceManager.getInstance().getEntityManager();
         try {
             em.getTransaction().begin();
             for (DoctorSchedule schedule : updatedSchedules) {
-                // em.merge() will either INSERT a new schedule (if id is null)
-                // or UPDATE an existing one.
                 em.merge(schedule);
             }
             em.getTransaction().commit();
@@ -119,6 +101,23 @@ public class ScheduleService {
             if (em.getTransaction().isActive()) em.getTransaction().rollback();
             e.printStackTrace();
             return false;
+        } finally {
+            if (em != null) em.close();
+        }
+    }
+
+    /**
+     * Helper method to create and save a single schedule entry, used for initial data seeding.
+     */
+    public void createSchedule(DoctorSchedule schedule) {
+        EntityManager em = PersistenceManager.getInstance().getEntityManager();
+        try {
+            em.getTransaction().begin();
+            em.persist(schedule);
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) em.getTransaction().rollback();
+            e.printStackTrace();
         } finally {
             if (em != null) em.close();
         }
