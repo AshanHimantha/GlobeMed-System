@@ -99,7 +99,7 @@ public class AppointmentScheduler implements AppointmentMediator {
                 break;
         }
 
-        System.out.println("MEDIATOR: All checks passed. Price determined as $" + String.format("%.2f", price));
+        System.out.println("MEDIATOR: All checks passed. Price determined as Rs." + String.format("%.2f", price));
 
         // 4. Delegate Final Action to the Service with all required parameters.
         Appointment createdAppointment = appointmentService.createAppointment(

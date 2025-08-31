@@ -39,7 +39,7 @@ public class InsuranceApprovalHandler extends ClaimHandler {
         // --- Present the UI options to the "insurance agent" ---
         String[] options = {"Approve Full Amount", "Approve Partial Amount", "Deny Claim", "Cancel"};
         String message = String.format(
-            "Reviewing Insurance Claim #%d for %s\nTotal Amount: $%.2f\n\nPlease select an action:",
+            "Reviewing Insurance Claim #%d for %s\nTotal Amount: Rs.%.2f\n\nPlease select an action:",
             claim.getId(),
             claim.getAppointment().getPatient().getName(),
             claim.getTotalAmount()
@@ -69,7 +69,7 @@ public class InsuranceApprovalHandler extends ClaimHandler {
     }
 
     private void approveFull(Claim claim) {
-        log("Insurance approved FULL amount of $" + String.format("%.2f", claim.getTotalAmount()));
+        log("Insurance approved FULL amount of Rs." + String.format("%.2f", claim.getTotalAmount()));
         claim.setPaidByInsurance(claim.getTotalAmount());
         claim.setStatus(ClaimStatus.CLOSED); // No patient balance, so the claim is now closed.
         claimService.updateClaim(claim);
@@ -91,7 +91,7 @@ public class InsuranceApprovalHandler extends ClaimHandler {
                 claim.setPaidByInsurance(approvedAmount);
                 claim.setStatus(ClaimStatus.PENDING_PATIENT_BILLING); // There is a balance due from the patient.
                 claimService.updateClaim(claim);
-                log("Insurance approved PARTIAL amount: $" + approvedAmount);
+                log("Insurance approved PARTIAL amount: Rs." + approvedAmount);
             } catch (NumberFormatException e) {
                 JOptionPane.showMessageDialog(null, "Invalid number format.", "Error", JOptionPane.ERROR_MESSAGE);
             }

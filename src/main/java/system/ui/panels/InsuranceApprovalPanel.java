@@ -47,8 +47,6 @@ public class InsuranceApprovalPanel extends javax.swing.JPanel {
     private JList<String> claimList;
     private JPanel detailsPanel; // Replace JTextArea with JPanel for cards
     private JButton approveButton;
-    private JButton partialButton;
-    private JButton denyButton;
     private JButton refreshButton;
     private JSplitPane mainSplitPane;
     private JPanel leftPanel;
@@ -69,8 +67,7 @@ public class InsuranceApprovalPanel extends javax.swing.JPanel {
         
         ActionListener processAction = e -> onProcessClaim();
         approveButton.addActionListener(processAction);
-        partialButton.addActionListener(processAction);
-        denyButton.addActionListener(processAction);
+
 
         loadPendingClaims();
     }
@@ -90,7 +87,7 @@ public class InsuranceApprovalPanel extends javax.swing.JPanel {
         } else {
             claimList.setEnabled(true);
             for (Claim claim : pendingClaims) {
-                String displayText = String.format("Claim #%d - %s (Total: $%.2f)",
+                String displayText = String.format("Claim #%d - %s (Total: Rs.%.2f)",
                     claim.getId(),
                     claim.getAppointment().getPatient().getName(),
                     claim.getTotalAmount());
@@ -123,7 +120,7 @@ public class InsuranceApprovalPanel extends javax.swing.JPanel {
             "Claim Overview",
             "Claim #" + claim.getId(),
             "Insurance Authorization: " + claim.getInsuranceAuthorizationId(),
-            "doc.png"
+            "claim.png"
         );
         detailsPanel.add(overviewCard);
         detailsPanel.add(javax.swing.Box.createVerticalStrut(10)); // Add gap
@@ -133,7 +130,7 @@ public class InsuranceApprovalPanel extends javax.swing.JPanel {
             "Patient Information",
             claim.getAppointment().getPatient().getName(),
             "Patient ID: " + claim.getAppointment().getPatient().getPatientId(),
-            "male.png"
+            "health-insurance.png"
         );
         detailsPanel.add(patientCard);
         detailsPanel.add(javax.swing.Box.createVerticalStrut(10)); // Add gap
@@ -143,7 +140,7 @@ public class InsuranceApprovalPanel extends javax.swing.JPanel {
             "Appointment Details",
             "Appointment #" + claim.getAppointment().getId(),
             "Service: " + claim.getAppointment().getServiceName(),
-            "stethoscope.png"
+            "appointment.png"
         );
         detailsPanel.add(appointmentCard);
         detailsPanel.add(javax.swing.Box.createVerticalStrut(10)); // Add gap
@@ -153,7 +150,7 @@ public class InsuranceApprovalPanel extends javax.swing.JPanel {
             "Financial Details",
             currencyFormat.format(claim.getTotalAmount()),
             "Total Amount for Review",
-            "bill.png"
+            "accounting.png"
         );
         detailsPanel.add(financialCard);
 
@@ -321,8 +318,7 @@ public class InsuranceApprovalPanel extends javax.swing.JPanel {
     
     private void setButtonsEnabled(boolean enabled) {
         approveButton.setEnabled(enabled);
-        partialButton.setEnabled(enabled);
-        denyButton.setEnabled(enabled);
+
     }
 
     private void initComponentsManual() {
@@ -476,23 +472,9 @@ public class InsuranceApprovalPanel extends javax.swing.JPanel {
         JPanel headerButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         headerButtonPanel.setOpaque(false);
 
-        denyButton = new JButton("Deny");
-        denyButton.setFont(new Font("Inter 18pt Medium", Font.PLAIN, 12));
-        denyButton.setForeground(Color.WHITE);
-        denyButton.setBackground(new Color(220, 53, 69));
-        denyButton.setPreferredSize(new Dimension(70, 26));
-        denyButton.setBorderPainted(false);
-        denyButton.setFocusPainted(false);
+      
 
-        partialButton = new JButton("Partial");
-        partialButton.setFont(new Font("Inter 18pt Medium", Font.PLAIN, 12));
-        partialButton.setForeground(new Color(102, 102, 102));
-        partialButton.setBackground(new Color(248, 249, 250));
-        partialButton.setPreferredSize(new Dimension(70, 26));
-        partialButton.setBorderPainted(false);
-        partialButton.setFocusPainted(false);
-
-        approveButton = new JButton("Approve");
+        approveButton = new JButton("Process");
         approveButton.setFont(new Font("Inter 18pt Medium", Font.PLAIN, 12));
         approveButton.setForeground(Color.WHITE);
         approveButton.setBackground(new Color(40, 167, 69));
@@ -500,8 +482,7 @@ public class InsuranceApprovalPanel extends javax.swing.JPanel {
         approveButton.setBorderPainted(false);
         approveButton.setFocusPainted(false);
 
-        headerButtonPanel.add(denyButton);
-        headerButtonPanel.add(partialButton);
+
         headerButtonPanel.add(approveButton);
 
         // Cards container (replacing text area)

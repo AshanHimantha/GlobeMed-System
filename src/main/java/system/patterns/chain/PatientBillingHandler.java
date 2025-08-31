@@ -37,7 +37,7 @@ public class PatientBillingHandler extends ClaimHandler {
         }
 
         String[] options = {"Pay with CARD", "Pay with CASH", "Cancel"};
-        String message = String.format("Final Bill for Claim #%d...\nAmount Due: $%.2f",
+        String message = String.format("Final Bill for Claim #%d...\nAmount Due: Rs.%.2f",
             claim.getId(), patientDueAmount);
         
         int choice = JOptionPane.showOptionDialog(null, message, "Patient Final Billing",

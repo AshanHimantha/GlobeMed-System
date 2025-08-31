@@ -6,22 +6,23 @@ package system.ui.panels;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.text.NumberFormat;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
-import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.JTextArea;
+import javax.swing.SwingConstants;
 import system.enums.ClaimStatus;
 import system.model.Claim;
 import system.patterns.chain.CardPaymentHandler;
@@ -35,27 +36,26 @@ import system.service.ClaimService;
  */
 public class PatientBillingPanel extends javax.swing.JPanel {
 
-   private final ClaimService claimService;
-    private final DefaultListModel<String> listModel;
-    private final Map<String, Claim> claimMap;
+    private final ClaimService claimService;
+    private final Map<JPanel, Claim> claimCardMap;
 
     // --- UI Components ---
-    private JList<String> claimList;
-    private JTextArea detailsTextArea;
+    private JPanel claimsContainer;
+    private JLabel patientNameLabel;
+    private JLabel claimIdLabel;
+    private JLabel totalAmountLabel;
+    private JLabel insurancePaidLabel;
+    private JLabel patientDueLabel;
     private JButton processPaymentButton;
     private JButton refreshButton;
+    private Claim selectedClaim;
 
     public PatientBillingPanel() {
         this.claimService = new ClaimService();
-        this.listModel = new DefaultListModel<>();
-        this.claimMap = new HashMap<>();
+        this.claimCardMap = new HashMap<>();
 
-        initComponentsManual(); // Build the UI
+        initComponentsManual();
 
-        // Add event listeners
-        claimList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) onClaimSelected();
-        });
         processPaymentButton.addActionListener(e -> onProcessPayment());
         refreshButton.addActionListener(e -> loadPendingClaims());
 
@@ -63,121 +63,240 @@ public class PatientBillingPanel extends javax.swing.JPanel {
     }
     
     private void loadPendingClaims() {
-        listModel.clear();
-        claimMap.clear();
-        detailsTextArea.setText("Please select a claim from the list to process final payment.");
+        claimsContainer.removeAll();
+        claimCardMap.clear();
+        clearDetailsPanel();
         processPaymentButton.setEnabled(false);
 
-        // Fetch claims that are waiting for this final step
         List<Claim> pendingClaims = claimService.findClaimsByStatus(ClaimStatus.PENDING_PATIENT_BILLING);
         
         if (pendingClaims.isEmpty()) {
-            listModel.addElement("No claims are currently pending patient payment.");
-            claimList.setEnabled(false);
+            JLabel noClaimsLabel = new JLabel("No claims are currently pending patient payment.");
+            noClaimsLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            noClaimsLabel.setFont(new Font("Inter", Font.ITALIC, 14));
+            noClaimsLabel.setForeground(Color.GRAY);
+            claimsContainer.add(noClaimsLabel);
         } else {
-            claimList.setEnabled(true);
+            claimsContainer.setLayout(new BoxLayout(claimsContainer, BoxLayout.Y_AXIS));
             for (Claim claim : pendingClaims) {
-                String displayText = String.format("Claim #%d - %s (Due: $%.2f)",
-                    claim.getId(),
-                    claim.getAppointment().getPatient().getName(),
-                    claim.getPatientDueAmount());
-                listModel.addElement(displayText);
-                claimMap.put(displayText, claim);
+                JPanel claimCard = createClaimCard(claim);
+                claimsContainer.add(claimCard);
+                claimCardMap.put(claimCard, claim);
             }
         }
+
+        claimsContainer.revalidate();
+        claimsContainer.repaint();
     }
 
-    private void onClaimSelected() {
-        String selectedValue = claimList.getSelectedValue();
-        if (selectedValue == null || !claimMap.containsKey(selectedValue)) {
-            processPaymentButton.setEnabled(false);
-            return;
+    private JPanel createClaimCard(Claim claim) {
+        JPanel card = new JPanel();
+        card.setLayout(new GridBagLayout());
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Color.LIGHT_GRAY),
+            BorderFactory.createEmptyBorder(12, 12, 12, 12)
+        ));
+        card.setBackground(Color.WHITE);
+        card.setPreferredSize(new Dimension(0, 80));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+
+        // Patient Name
+        JLabel nameLabel = new JLabel(claim.getAppointment().getPatient().getName());
+        nameLabel.setFont(nameLabel.getFont().deriveFont(Font.BOLD, 14f));
+        gbc.gridx = 0; gbc.gridy = 0; gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(0, 0, 3, 30); // Added 30px right margin for gap
+        gbc.weightx = 1.0; // Allow left side to expand
+        card.add(nameLabel, gbc);
+
+        // Claim ID
+        JLabel idLabel = new JLabel("Claim #" + claim.getId());
+        idLabel.setFont(idLabel.getFont().deriveFont(11f));
+        idLabel.setForeground(Color.GRAY);
+        gbc.gridy = 1;
+        card.add(idLabel, gbc);
+
+        // Amount Due
+        JLabel amountLabel = new JLabel("Rs. " + String.format("%.2f", claim.getPatientDueAmount()));
+        amountLabel.setFont(amountLabel.getFont().deriveFont(Font.BOLD, 16f));
+        gbc.gridx = 1; gbc.gridy = 0; gbc.anchor = GridBagConstraints.EAST;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        gbc.weightx = 0; // Don't expand right side
+        card.add(amountLabel, gbc);
+
+        // Status
+        JLabel statusLabel = new JLabel("● PENDING");
+        statusLabel.setFont(statusLabel.getFont().deriveFont(10f));
+        statusLabel.setForeground(new Color(255, 140, 0)); // Orange
+        gbc.gridy = 1;
+        card.add(statusLabel, gbc);
+
+        // Add click listener
+        card.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                selectClaimCard(card, claim);
+            }
+
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                if (selectedClaim != claim) {
+                    card.setBackground(new Color(245, 245, 245));
+                }
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                if (selectedClaim != claim) {
+                    card.setBackground(Color.WHITE);
+                }
+            }
+        });
+
+        return card;
+    }
+
+    private void selectClaimCard(JPanel selectedCard, Claim claim) {
+        // Reset all cards
+        for (JPanel card : claimCardMap.keySet()) {
+            card.setBackground(Color.WHITE);
+            card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color.LIGHT_GRAY),
+                BorderFactory.createEmptyBorder(12, 12, 12, 12)
+            ));
         }
 
-        Claim claim = claimMap.get(selectedValue);
-        detailsTextArea.setText("");
-        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance();
+        // Highlight selected card
+        selectedCard.setBackground(new Color(230, 240, 255));
+        selectedCard.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(70, 130, 180)),
+            BorderFactory.createEmptyBorder(12, 12, 12, 12)
+        ));
 
-        detailsTextArea.append("FINAL BILLING DETAILS\n");
-        detailsTextArea.append("---------------------------------\n");
-        detailsTextArea.append(String.format("%-20s %s\n", "Claim ID:", claim.getId()));
-        detailsTextArea.append(String.format("%-20s %s\n", "Patient:", claim.getAppointment().getPatient().getName()));
-        detailsTextArea.append(String.format("%-20s %s\n", "Total Amount:", currencyFormat.format(claim.getTotalAmount())));
-        detailsTextArea.append(String.format("%-20s %s\n", "Paid by Insurance:", currencyFormat.format(claim.getPaidByInsurance())));
-        detailsTextArea.append("---------------------------------\n");
-        detailsTextArea.append(String.format("%-20s %s\n", "AMOUNT DUE:", currencyFormat.format(claim.getPatientDueAmount())));
-
+        this.selectedClaim = claim;
+        updateDetailsPanel(claim);
         processPaymentButton.setEnabled(true);
     }
     
+    private void updateDetailsPanel(Claim claim) {
+        patientNameLabel.setText(claim.getAppointment().getPatient().getName());
+        claimIdLabel.setText("Claim #" + claim.getId());
+        totalAmountLabel.setText("Rs. " + String.format("%.2f", claim.getTotalAmount()));
+        insurancePaidLabel.setText("Rs. " + String.format("%.2f", claim.getPaidByInsurance()));
+        patientDueLabel.setText("Rs. " + String.format("%.2f", claim.getPatientDueAmount()));
+    }
+
+    private void clearDetailsPanel() {
+        patientNameLabel.setText("Select a claim to view details");
+        claimIdLabel.setText("");
+        totalAmountLabel.setText("--");
+        insurancePaidLabel.setText("--");
+        patientDueLabel.setText("--");
+    }
+
     private void onProcessPayment() {
-        String selectedValue = claimList.getSelectedValue();
-        if (selectedValue == null) return;
-        
-        Claim claimToProcess = claimMap.get(selectedValue);
+        if (selectedClaim == null) return;
 
-       ClaimHandler billingHandler = new PatientBillingHandler();
-        ClaimHandler cardHandler = new CardPaymentHandler(); // The specialized card processor
+        ClaimHandler billingHandler = new PatientBillingHandler();
+        ClaimHandler cardHandler = new CardPaymentHandler();
 
-        // 2. Build the chain. The card handler comes AFTER the billing handler.
         billingHandler.setNextHandler(cardHandler);
+        billingHandler.processClaim(selectedClaim);
 
-        // 3. Start the process by giving the claim to the FIRST handler in this sub-chain.
-        billingHandler.processClaim(claimToProcess);
-        
-        // 4. Refresh the list. The claim should now be gone from this queue.
         loadPendingClaims();
     }
     
     private void initComponentsManual() {
         setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        // Header
-        JPanel headerPanel = new JPanel();
-        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
-        JLabel titleLabel = new JLabel("Patient Final Billing");
-        titleLabel.setFont(new Font("Inter", Font.BOLD, 24));
+        // Simple Header
+        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        JLabel titleLabel = new JLabel("Patient Billing");
+        titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 20f));
+
+        refreshButton = new JButton("Refresh");
+
         headerPanel.add(titleLabel);
+        headerPanel.add(javax.swing.Box.createHorizontalStrut(20));
+        headerPanel.add(refreshButton);
+
         add(headerPanel, BorderLayout.NORTH);
 
-        // Main Split Pane
+        // Main Content Panel
         JSplitPane mainSplitPane = new JSplitPane();
-        mainSplitPane.setDividerLocation(350);
+        mainSplitPane.setDividerLocation(400);
         add(mainSplitPane, BorderLayout.CENTER);
 
         // Left Side: Claims List
         JPanel leftPanel = new JPanel(new BorderLayout(5, 5));
-        claimList = new JList<>(listModel);
-        JScrollPane listScrollPane = new JScrollPane(claimList);
-        listScrollPane.setBorder(BorderFactory.createTitledBorder("Claims Pending Patient Payment"));
-        refreshButton = new JButton("Refresh List");
-        leftPanel.add(listScrollPane, BorderLayout.CENTER);
-        leftPanel.add(refreshButton, BorderLayout.SOUTH);
+
+        JLabel claimsTitle = new JLabel("Pending Claims");
+        claimsTitle.setFont(claimsTitle.getFont().deriveFont(Font.BOLD));
+        leftPanel.add(claimsTitle, BorderLayout.NORTH);
+
+        claimsContainer = new JPanel();
+        claimsContainer.setBackground(Color.WHITE);
+        JScrollPane claimsScrollPane = new JScrollPane(claimsContainer);
+        leftPanel.add(claimsScrollPane, BorderLayout.CENTER);
+
         mainSplitPane.setLeftComponent(leftPanel);
 
-        // Right Side: Details and Actions
-        JPanel rightPanel = new JPanel(new BorderLayout(5, 5));
-        detailsTextArea = new JTextArea("Please select a claim from the list.");
-        detailsTextArea.setEditable(false);
-        detailsTextArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        rightPanel.add(new JScrollPane(detailsTextArea), BorderLayout.CENTER);
-
-        processPaymentButton = new JButton("Process Final Patient Payment");
-        processPaymentButton.setFont(new Font("Inter", Font.BOLD, 14));
-        processPaymentButton.setBackground(new Color(40, 167, 69)); // Green
-        processPaymentButton.setForeground(Color.WHITE);
-        
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.add(processPaymentButton);
-        rightPanel.add(buttonPanel, BorderLayout.SOUTH);
-        mainSplitPane.setRightComponent(rightPanel);
-        
-        setButtonsEnabled(false);
+        // Right Side: Details Panel
+        JPanel detailsPanel = createDetailsPanel();
+        mainSplitPane.setRightComponent(detailsPanel);
     }
-    
-    private void setButtonsEnabled(boolean enabled){
-        processPaymentButton.setEnabled(enabled);
+
+    private JPanel createDetailsPanel() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createTitledBorder("Billing Details"));
+
+        // Details Content
+        JPanel contentPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        // Patient Name
+        addDetailRow(contentPanel, gbc, 0, "Patient:",
+            patientNameLabel = new JLabel("Select a claim"));
+
+        // Claim ID
+        addDetailRow(contentPanel, gbc, 1, "Claim ID:",
+            claimIdLabel = new JLabel(""));
+
+        // Financial Details
+        addDetailRow(contentPanel, gbc, 2, "Total Amount:",
+            totalAmountLabel = new JLabel("--"));
+
+        addDetailRow(contentPanel, gbc, 3, "Insurance Paid:",
+            insurancePaidLabel = new JLabel("--"));
+
+        // Patient Due
+        addDetailRow(contentPanel, gbc, 4, "Patient Due:",
+            patientDueLabel = new JLabel("--"));
+
+        panel.add(contentPanel, BorderLayout.CENTER);
+
+        // Action Button
+        processPaymentButton = new JButton("Process Payment");
+        processPaymentButton.setEnabled(false);
+        panel.add(processPaymentButton, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    private void addDetailRow(JPanel parent, GridBagConstraints gbc, int row, String label, JLabel valueLabel) {
+        gbc.gridx = 0; gbc.gridy = row;
+        gbc.insets = new Insets(5, 5, 5, 20); // Added horizontal gap of 20px between label and value
+        JLabel titleLabel = new JLabel(label);
+        parent.add(titleLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.insets = new Insets(5, 0, 5, 5); // Reset insets for value label
+        parent.add(valueLabel, gbc);
     }
 
     /**

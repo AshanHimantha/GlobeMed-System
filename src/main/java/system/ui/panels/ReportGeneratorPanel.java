@@ -404,15 +404,15 @@ public class ReportGeneratorPanel extends javax.swing.JPanel {
 
         cards.add(createModernMetricCard("Total Revenue",
             currencyFormat.format(visitor.getTotalRevenue()),
-            "Revenue from all sources", "bill.png"));
+            "Revenue from all sources", "profit-up_1.png"));
 
         cards.add(createModernMetricCard("Direct Payments",
             currencyFormat.format(visitor.getTotalRevenueFromAppointments()),
-            visitor.getVisitedAppointments() + " appointments processed", "stethoscope.png"));
+            visitor.getVisitedAppointments() + " appointments processed", "cash-payment.png"));
 
         cards.add(createModernMetricCard("Insurance Claims",
             currencyFormat.format(visitor.getTotalRevenueFromClaims()),
-            visitor.getVisitedClaims() + " claims processed", "doc.png"));
+            visitor.getVisitedClaims() + " claims processed", "claim.png"));
 
         Date fromDate = (Date) fromDateSpinner.getValue();
         Date toDate = (Date) toDateSpinner.getValue();
@@ -432,15 +432,15 @@ public class ReportGeneratorPanel extends javax.swing.JPanel {
 
         cards.add(createModernMetricCard("Scheduled Appointments",
             String.valueOf(visitor.getScheduledAppointments()),
-            "Upcoming appointments", "calendar.png"));
+            "Upcoming appointments", "accounting.png"));
 
         cards.add(createModernMetricCard("Completed Appointments",
             String.valueOf(visitor.getCompletedAppointments()),
-            "Finished appointments", "stethoscope.png"));
+            "Finished appointments", "check.png"));
 
         cards.add(createModernMetricCard("Pending Claims",
             String.valueOf(visitor.getPendingClaims()),
-            "Claims awaiting processing", "doc2.png"));
+            "Claims awaiting processing", "online-doctor.png"));
 
         cards.add(createModernMetricCard("Closed Claims",
             String.valueOf(visitor.getClosedClaims()),

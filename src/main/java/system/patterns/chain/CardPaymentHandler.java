@@ -38,7 +38,7 @@ public class CardPaymentHandler extends ClaimHandler {
              return;
         }
 
-        log("Attempting to process CARD payment for $" + String.format("%.2f", amountToCharge));
+        log("Attempting to process CARD payment for Rs." + String.format("%.2f", amountToCharge));
 
         // Step 2: Simulate the core business logic (calling a payment gateway).
         boolean paymentSuccess = processCardTransaction(amountToCharge);
@@ -71,7 +71,7 @@ public class CardPaymentHandler extends ClaimHandler {
      * @return true if the transaction is approved, false if it is declined.
      */
     private boolean processCardTransaction(double amount) {
-        log("   (Simulating call to external payment gateway for $" + String.format("%.2f", amount) + "...)");
+        log("   (Simulating call to external payment gateway for Rs." + String.format("%.2f", amount) + "...)");
         
         // Let's simulate a failure for amounts ending in ".99" to test the workflow.
         if (String.format("%.2f", amount).endsWith(".99")) {

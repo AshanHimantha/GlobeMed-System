@@ -144,7 +144,7 @@ private final ClaimService claimService;
             "Appointment Overview",
             "Appointment #" + appt.getId(),
             "Service: " + appt.getServiceName(),
-            "calendar.png"
+            "appointment.png"
         );
         detailsPanel.add(appointmentCard);
         detailsPanel.add(Box.createVerticalStrut(10));
@@ -154,7 +154,7 @@ private final ClaimService claimService;
             "Patient Information",
             appt.getPatient().getName(),
             "Patient ID: " + appt.getPatient().getPatientId(),
-            "male.png"
+            "health-insurance.png"
         );
         detailsPanel.add(patientCard);
         detailsPanel.add(Box.createVerticalStrut(10));
@@ -177,7 +177,7 @@ private final ClaimService claimService;
             "Financial Summary",
             currencyFormat.format(total),
             "Total Amount to be Claimed",
-            "bill.png"
+            "accounting.png"
         );
         detailsPanel.add(financialCard);
 
@@ -399,7 +399,7 @@ private final ClaimService claimService;
         rightPanel.setPreferredSize(new Dimension(60, 140));
 
         try {
-            ImageIcon icon = new ImageIcon(getClass().getResource("/img/stethoscope.png"));
+            ImageIcon icon = new ImageIcon(getClass().getResource("/img/claim.png"));
             Image scaledImage = icon.getImage().getScaledInstance(40, 40, Image.SCALE_SMOOTH);
             JLabel iconLabel = new JLabel(new ImageIcon(scaledImage));
             iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
