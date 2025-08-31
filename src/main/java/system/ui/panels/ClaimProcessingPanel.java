@@ -10,6 +10,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Frame;
+import java.awt.Image;
 import java.text.NumberFormat;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +19,7 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -26,7 +28,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.JTextArea;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import system.model.Appointment;
 import system.model.BillableItem;
@@ -51,12 +53,14 @@ private final ClaimService claimService;
 
     // --- UI Component Declarations ---
     private JList<String> appointmentList;
-    private JTextArea detailsTextArea;
+    private JPanel detailsPanel; // Replace JTextArea with JPanel for cards
     private JButton processClaimButton;
     private JButton refreshButton;
     private JButton openInsurancePanelButton;
-    private JTextArea logTextArea; 
-     private JButton openPatientBillingButton;
+    private JButton openPatientBillingButton;
+    private JSplitPane mainSplitPane;
+    private JPanel leftPanel;
+    private JPanel rightPanel;
 
     public ClaimProcessingPanel() {
        this.claimService = new ClaimService();
@@ -100,7 +104,7 @@ private final ClaimService claimService;
     private void loadAppointmentsReadyForBilling() {
         listModel.clear();
         appointmentMap.clear();
-        detailsTextArea.setText("Please select a completed appointment from the list to begin processing.");
+        showWelcomeCard();
         processClaimButton.setEnabled(false);
 
         List<Appointment> appointments = claimService.getAppointmentsReadyForBilling();
@@ -120,305 +124,578 @@ private final ClaimService claimService;
 
       private void onAppointmentSelected() {
         String selectedValue = appointmentList.getSelectedValue();
-        if (selectedValue == null || !appointmentMap.containsKey(selectedValue)) { /* ... */ return; }
-        
+        if (selectedValue == null || !appointmentMap.containsKey(selectedValue)) {
+            showWelcomeCard();
+            processClaimButton.setEnabled(false);
+            return;
+        }
+
         Appointment appt = appointmentMap.get(selectedValue);
-        detailsTextArea.setText("");
+        displayAppointmentDetailsCards(appt);
+        processClaimButton.setEnabled(true);
+    }
+
+    private void displayAppointmentDetailsCards(Appointment appt) {
+        detailsPanel.removeAll();
         NumberFormat currencyFormat = NumberFormat.getCurrencyInstance();
 
-        detailsTextArea.append("APPOINTMENT DETAILS FOR CLAIM\n");
-        // ... (display appointment details as before)
+        // Appointment Overview Card
+        RoundedPanel appointmentCard = createInfoCard(
+            "Appointment Overview",
+            "Appointment #" + appt.getId(),
+            "Service: " + appt.getServiceName(),
+            "calendar.png"
+        );
+        detailsPanel.add(appointmentCard);
+        detailsPanel.add(Box.createVerticalStrut(10));
 
-        // --- THIS IS THE FIX ---
-        // 1. Find the Claim associated with this Appointment.
+        // Patient Information Card
+        RoundedPanel patientCard = createInfoCard(
+            "Patient Information",
+            appt.getPatient().getName(),
+            "Patient ID: " + appt.getPatient().getPatientId(),
+            "male.png"
+        );
+        detailsPanel.add(patientCard);
+        detailsPanel.add(Box.createVerticalStrut(10));
+
+        // Financial Overview Card
+        double total = appt.getPrice();
         Claim associatedClaim = claimService.findClaimByAppointmentId(appt.getId());
-        double total = appt.getPrice(); // Default to appointment price
 
-        // 2. If a claim exists (like for a surgery), get the items FROM THE CLAIM.
         if (associatedClaim != null) {
             List<BillableItem> items = associatedClaim.getItems();
             if (!items.isEmpty()) {
-                detailsTextArea.append("\nBILLABLE ITEMS (from Claim #" + associatedClaim.getId() + ")\n");
-                detailsTextArea.append("---------------------------------\n");
-                total = 0; // Recalculate total from items
+                total = 0;
                 for (BillableItem item : items) {
-                    detailsTextArea.append(String.format("- %-20s %s\n", item.getDescription(), currencyFormat.format(item.getCost())));
                     total += item.getCost();
                 }
             }
         }
-        // --- END OF FIX ---
-        
-        detailsTextArea.append("---------------------------------\n");
-        detailsTextArea.append(String.format("TOTAL TO BE CLAIMED: %s\n", currencyFormat.format(total)));
-        
-        processClaimButton.setEnabled(true);
-        logTextArea.setText("Ready to generate and process claim for Appointment #" + appt.getId());
+
+        RoundedPanel financialCard = createInfoCard(
+            "Financial Summary",
+            currencyFormat.format(total),
+            "Total Amount to be Claimed",
+            "bill.png"
+        );
+        detailsPanel.add(financialCard);
+
+        // Billable Items Card (if exists)
+        if (associatedClaim != null) {
+            List<BillableItem> items = associatedClaim.getItems();
+            if (!items.isEmpty()) {
+                detailsPanel.add(Box.createVerticalStrut(10));
+                RoundedPanel itemsCard = createBillableItemsCard(items, associatedClaim.getId());
+                detailsPanel.add(itemsCard);
+            }
+        }
+
+        detailsPanel.revalidate();
+        detailsPanel.repaint();
+    }
+
+    private void showWelcomeCard() {
+        detailsPanel.removeAll();
+
+        RoundedPanel welcomeCard = createWelcomeCard();
+        detailsPanel.add(welcomeCard);
+
+        detailsPanel.revalidate();
+        detailsPanel.repaint();
+    }
+
+    private RoundedPanel createInfoCard(String title, String mainInfo, String subtitle, String iconName) {
+        RoundedPanel card = new RoundedPanel();
+        card.setLayout(new BorderLayout(10, 5));
+        card.setBackground(Color.WHITE);
+        card.setForeground(new Color(220, 220, 220));
+        card.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
+        card.setMinimumSize(new Dimension(400, 120));
+        card.setPreferredSize(new Dimension(800, 120));
+
+        // Left content panel for text
+        JPanel leftPanel = new JPanel(new BorderLayout(5, 5));
+        leftPanel.setOpaque(false);
+
+        // Title at top left
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Inter", Font.BOLD, 16));
+        titleLabel.setForeground(new Color(44, 62, 80));
+        leftPanel.add(titleLabel, BorderLayout.NORTH);
+
+        // Main info in center left
+        JLabel mainInfoLabel = new JLabel(mainInfo);
+        mainInfoLabel.setFont(new Font("Inter", Font.BOLD, 20));
+        mainInfoLabel.setForeground(new Color(52, 152, 219));
+        leftPanel.add(mainInfoLabel, BorderLayout.CENTER);
+
+        // Subtitle at bottom left
+        JLabel subtitleLabel = new JLabel(subtitle);
+        subtitleLabel.setFont(new Font("Inter", Font.PLAIN, 12));
+        subtitleLabel.setForeground(new Color(127, 140, 141));
+        leftPanel.add(subtitleLabel, BorderLayout.SOUTH);
+
+        card.add(leftPanel, BorderLayout.CENTER);
+
+        // Right panel for icon
+        JPanel rightPanel = new JPanel(new BorderLayout());
+        rightPanel.setOpaque(false);
+        rightPanel.setPreferredSize(new Dimension(60, 120));
+
+        try {
+            ImageIcon icon = new ImageIcon(getClass().getResource("/img/" + iconName));
+            Image scaledImage = icon.getImage().getScaledInstance(40, 40, Image.SCALE_SMOOTH);
+            JLabel iconLabel = new JLabel(new ImageIcon(scaledImage));
+            iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            iconLabel.setVerticalAlignment(SwingConstants.TOP);
+            iconLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+            rightPanel.add(iconLabel, BorderLayout.NORTH);
+        } catch (Exception e) {
+            // Fallback icon
+            JLabel placeholderIcon = new JLabel("📋");
+            placeholderIcon.setFont(new Font("Arial", Font.BOLD, 32));
+            placeholderIcon.setForeground(new Color(52, 152, 219));
+            placeholderIcon.setHorizontalAlignment(SwingConstants.CENTER);
+            placeholderIcon.setVerticalAlignment(SwingConstants.TOP);
+            placeholderIcon.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+            rightPanel.add(placeholderIcon, BorderLayout.NORTH);
+        }
+
+        card.add(rightPanel, BorderLayout.EAST);
+        return card;
+    }
+
+    private RoundedPanel createBillableItemsCard(List<BillableItem> items, Long claimId) {
+        RoundedPanel card = new RoundedPanel();
+        card.setLayout(new BorderLayout(10, 5));
+        card.setBackground(Color.WHITE);
+        card.setForeground(new Color(220, 220, 220));
+        card.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 200));
+        card.setMinimumSize(new Dimension(400, 150));
+        card.setPreferredSize(new Dimension(800, 180));
+
+        // Header
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setOpaque(false);
+
+        JLabel titleLabel = new JLabel("Billable Items");
+        titleLabel.setFont(new Font("Inter", Font.BOLD, 16));
+        titleLabel.setForeground(new Color(44, 62, 80));
+
+        JLabel claimLabel = new JLabel("From Claim #" + claimId);
+        claimLabel.setFont(new Font("Inter", Font.PLAIN, 12));
+        claimLabel.setForeground(new Color(127, 140, 141));
+
+        headerPanel.add(titleLabel, BorderLayout.WEST);
+        headerPanel.add(claimLabel, BorderLayout.EAST);
+
+        // Items list
+        JPanel itemsPanel = new JPanel();
+        itemsPanel.setLayout(new BoxLayout(itemsPanel, BoxLayout.Y_AXIS));
+        itemsPanel.setOpaque(false);
+
+        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance();
+        for (BillableItem item : items) {
+            JPanel itemRow = new JPanel(new BorderLayout());
+            itemRow.setOpaque(false);
+            itemRow.setBorder(BorderFactory.createEmptyBorder(2, 0, 2, 0));
+
+            JLabel descLabel = new JLabel(item.getDescription());
+            descLabel.setFont(new Font("Inter", Font.PLAIN, 13));
+            descLabel.setForeground(new Color(52, 73, 94));
+
+            JLabel costLabel = new JLabel(currencyFormat.format(item.getCost()));
+            costLabel.setFont(new Font("Inter", Font.BOLD, 13));
+            costLabel.setForeground(new Color(39, 174, 96));
+
+            itemRow.add(descLabel, BorderLayout.WEST);
+            itemRow.add(costLabel, BorderLayout.EAST);
+            itemsPanel.add(itemRow);
+        }
+
+        // Main content panel
+        JPanel contentPanel = new JPanel(new BorderLayout(0, 10));
+        contentPanel.setOpaque(false);
+        contentPanel.add(headerPanel, BorderLayout.NORTH);
+        contentPanel.add(itemsPanel, BorderLayout.CENTER);
+
+        card.add(contentPanel, BorderLayout.CENTER);
+
+        // Icon
+        JPanel rightPanel = new JPanel(new BorderLayout());
+        rightPanel.setOpaque(false);
+        rightPanel.setPreferredSize(new Dimension(60, 180));
+
+        try {
+            ImageIcon icon = new ImageIcon(getClass().getResource("/img/doc2.png"));
+            Image scaledImage = icon.getImage().getScaledInstance(40, 40, Image.SCALE_SMOOTH);
+            JLabel iconLabel = new JLabel(new ImageIcon(scaledImage));
+            iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            iconLabel.setVerticalAlignment(SwingConstants.TOP);
+            iconLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+            rightPanel.add(iconLabel, BorderLayout.NORTH);
+        } catch (Exception e) {
+            JLabel placeholderIcon = new JLabel("📋");
+            placeholderIcon.setFont(new Font("Arial", Font.BOLD, 32));
+            placeholderIcon.setForeground(new Color(52, 152, 219));
+            placeholderIcon.setHorizontalAlignment(SwingConstants.CENTER);
+            placeholderIcon.setVerticalAlignment(SwingConstants.TOP);
+            placeholderIcon.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+            rightPanel.add(placeholderIcon, BorderLayout.NORTH);
+        }
+
+        card.add(rightPanel, BorderLayout.EAST);
+        return card;
+    }
+
+    private RoundedPanel createWelcomeCard() {
+        RoundedPanel card = new RoundedPanel();
+        card.setLayout(new BorderLayout(10, 5));
+        card.setBackground(Color.WHITE);
+        card.setForeground(new Color(220, 220, 220));
+        card.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 140));
+        card.setMinimumSize(new Dimension(400, 140));
+        card.setPreferredSize(new Dimension(800, 140));
+
+        // Left content panel for text
+        JPanel leftPanel = new JPanel(new BorderLayout(5, 5));
+        leftPanel.setOpaque(false);
+
+        // Title
+        JLabel titleLabel = new JLabel("Claim Processing Portal");
+        titleLabel.setFont(new Font("Inter", Font.BOLD, 16));
+        titleLabel.setForeground(new Color(44, 62, 80));
+        leftPanel.add(titleLabel, BorderLayout.NORTH);
+
+        // Instructions
+        JPanel instructionPanel = new JPanel();
+        instructionPanel.setLayout(new BoxLayout(instructionPanel, BoxLayout.Y_AXIS));
+        instructionPanel.setOpaque(false);
+
+        String[] instructions = {
+            "Select an appointment from the list to review details",
+            "Review appointment and billing information",
+            "Generate and submit claim for processing"
+        };
+
+        for (String instruction : instructions) {
+            JLabel lineLabel = new JLabel(instruction);
+            lineLabel.setFont(new Font("Inter", Font.PLAIN, 12));
+            lineLabel.setForeground(new Color(52, 73, 94));
+            lineLabel.setAlignmentX(JLabel.LEFT_ALIGNMENT);
+            instructionPanel.add(lineLabel);
+        }
+
+        leftPanel.add(instructionPanel, BorderLayout.CENTER);
+        card.add(leftPanel, BorderLayout.CENTER);
+
+        // Right panel for icon
+        JPanel rightPanel = new JPanel(new BorderLayout());
+        rightPanel.setOpaque(false);
+        rightPanel.setPreferredSize(new Dimension(60, 140));
+
+        try {
+            ImageIcon icon = new ImageIcon(getClass().getResource("/img/stethoscope.png"));
+            Image scaledImage = icon.getImage().getScaledInstance(40, 40, Image.SCALE_SMOOTH);
+            JLabel iconLabel = new JLabel(new ImageIcon(scaledImage));
+            iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            iconLabel.setVerticalAlignment(SwingConstants.TOP);
+            iconLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+            rightPanel.add(iconLabel, BorderLayout.NORTH);
+        } catch (Exception e) {
+            JLabel placeholderIcon = new JLabel("🏥");
+            placeholderIcon.setFont(new Font("Arial", Font.BOLD, 32));
+            placeholderIcon.setHorizontalAlignment(SwingConstants.CENTER);
+            placeholderIcon.setVerticalAlignment(SwingConstants.TOP);
+            placeholderIcon.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+            rightPanel.add(placeholderIcon, BorderLayout.NORTH);
+        }
+
+        card.add(rightPanel, BorderLayout.EAST);
+        return card;
+    }
+
+    private void initComponentsManual() {
+        setLayout(new BorderLayout(10, 0));
+        setBackground(Color.WHITE);
+
+        // Header Panel (matching InsuranceApprovalPanel style)
+        JPanel headerPanel = new JPanel();
+        headerPanel.setBackground(new Color(247, 247, 247));
+        headerPanel.setMaximumSize(new Dimension(32767, 90));
+        headerPanel.setMinimumSize(new Dimension(0, 90));
+        headerPanel.setPreferredSize(new Dimension(987, 90));
+        headerPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 20));
+
+        JPanel headerContent = new JPanel();
+        headerContent.setOpaque(false);
+        headerContent.setLayout(new BorderLayout());
+
+        JLabel titleLabel = new JLabel("Claim Processing Portal");
+        titleLabel.setFont(new Font("Inter 18pt", Font.BOLD, 24));
+        titleLabel.setForeground(new Color(5, 5, 5));
+        headerContent.add(titleLabel, BorderLayout.NORTH);
+
+        JLabel subtitleLabel = new JLabel("Generate claims from completed appointments and submit for validation");
+        subtitleLabel.setFont(new Font("Inter", Font.PLAIN, 12));
+        subtitleLabel.setForeground(new Color(102, 102, 102));
+        headerContent.add(subtitleLabel, BorderLayout.SOUTH);
+
+        headerPanel.add(headerContent);
+        add(headerPanel, BorderLayout.PAGE_START);
+
+        // Main Content Panel with Split Pane
+        JPanel mainPanel = new JPanel();
+        mainPanel.setBackground(new Color(247, 247, 247));
+        mainPanel.setMinimumSize(new Dimension(900, 700));
+        mainPanel.setPreferredSize(new Dimension(903, 700));
+        mainPanel.setLayout(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Create Split Pane
+        mainSplitPane = new JSplitPane();
+        mainSplitPane.setDividerLocation(360);
+        mainSplitPane.setDividerSize(0);
+        mainSplitPane.setMaximumSize(new Dimension(2147483647, 500));
+        mainSplitPane.setMinimumSize(new Dimension(800, 300));
+        mainSplitPane.setPreferredSize(new Dimension(1250, 510));
+
+        // Left Panel - Appointments List
+        createAppointmentsListPanel();
+        mainSplitPane.setLeftComponent(leftPanel);
+
+        // Right Panel - Appointment Details
+        createDetailsPanel();
+        mainSplitPane.setRightComponent(rightPanel);
+
+        mainPanel.add(mainSplitPane, BorderLayout.CENTER);
+        add(mainPanel, BorderLayout.CENTER);
+    }
+
+    private void createAppointmentsListPanel() {
+        leftPanel = new JPanel();
+        leftPanel.setBackground(new Color(247, 247, 247));
+        leftPanel.setMaximumSize(new Dimension(300, 32767));
+        leftPanel.setMinimumSize(new Dimension(300, 100));
+        leftPanel.setPreferredSize(new Dimension(300, 510));
+        leftPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 30, 0));
+
+        // Create the appointments list card
+        RoundedPanel appointmentsCard = new RoundedPanel();
+        appointmentsCard.setBackground(Color.WHITE);
+        appointmentsCard.setForeground(new Color(234, 234, 234));
+        appointmentsCard.setMinimumSize(new Dimension(330, 600));
+
+        // Form elements
+        JLabel appointmentsTitle = new JLabel("Ready for Billing");
+        appointmentsTitle.setFont(new Font("Inter 18pt SemiBold", Font.PLAIN, 24));
+        appointmentsTitle.setForeground(Color.BLACK);
+
+        JLabel appointmentsSubtitle = new JLabel("Select an appointment to process claim");
+        appointmentsSubtitle.setFont(new Font("Inter", Font.PLAIN, 12));
+        appointmentsSubtitle.setForeground(new Color(153, 153, 153));
+
+        appointmentList = new JList<>(listModel);
+        appointmentList.setFont(new Font("Inter", Font.PLAIN, 12));
+        appointmentList.setBackground(Color.WHITE);
+        appointmentList.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220), 1));
+
+        JScrollPane listScrollPane = new JScrollPane(appointmentList);
+        listScrollPane.setPreferredSize(new Dimension(300, 400));
+
+        refreshButton = new JButton("Refresh List");
+        refreshButton.setFont(new Font("Inter 18pt SemiBold", Font.PLAIN, 14));
+        refreshButton.setForeground(Color.WHITE);
+        refreshButton.setBackground(new Color(0, 153, 255));
+
+        // Use GroupLayout
+        javax.swing.GroupLayout appointmentsCardLayout = new javax.swing.GroupLayout(appointmentsCard);
+        appointmentsCard.setLayout(appointmentsCardLayout);
+        appointmentsCardLayout.setHorizontalGroup(
+            appointmentsCardLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(appointmentsCardLayout.createSequentialGroup()
+                .addGap(13, 13, 13)
+                .addGroup(appointmentsCardLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(listScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 312, Short.MAX_VALUE)
+                    .addComponent(refreshButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(appointmentsCardLayout.createSequentialGroup()
+                        .addGroup(appointmentsCardLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(appointmentsTitle)
+                            .addComponent(appointmentsSubtitle))
+                        .addGap(0, 0, Short.MAX_VALUE)))
+                .addGap(14, 14, 14))
+        );
+        appointmentsCardLayout.setVerticalGroup(
+            appointmentsCardLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(appointmentsCardLayout.createSequentialGroup()
+                .addGap(20, 20, 20)
+                .addComponent(appointmentsTitle)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(appointmentsSubtitle)
+                .addGap(18, 18, 18)
+                .addComponent(listScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 450, Short.MAX_VALUE)
+                .addGap(18, 18, 18)
+                .addComponent(refreshButton, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(28, 28, 28))
+        );
+
+        leftPanel.add(appointmentsCard);
+    }
+
+    private void createDetailsPanel() {
+        rightPanel = new JPanel();
+        rightPanel.setBackground(new Color(247, 247, 247));
+        rightPanel.setMaximumSize(new Dimension(2147483647, 600));
+        rightPanel.setPreferredSize(new Dimension(831, 600));
+        rightPanel.setLayout(new BorderLayout(30, 0));
+
+        // Create the details card
+        RoundedPanel detailsCard = new RoundedPanel();
+        detailsCard.setBackground(Color.WHITE);
+        detailsCard.setForeground(new Color(234, 234, 234));
+        detailsCard.setMaximumSize(new Dimension(32767, 600));
+        detailsCard.setMinimumSize(new Dimension(0, 600));
+        detailsCard.setPreferredSize(new Dimension(811, 600));
+
+        // Header elements
+        JLabel detailsTitle = new JLabel("Appointment Details");
+        detailsTitle.setFont(new Font("Inter 18pt SemiBold", Font.PLAIN, 24));
+        detailsTitle.setForeground(Color.BLACK);
+
+        // Action Buttons in header
+        JPanel headerButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        headerButtonPanel.setOpaque(false);
+
+        openPatientBillingButton = new JButton("Patient Billing");
+        openPatientBillingButton.setFont(new Font("Inter 18pt Medium", Font.PLAIN, 12));
+        openPatientBillingButton.setForeground(new Color(102, 102, 102));
+        openPatientBillingButton.setBackground(new Color(248, 249, 250));
+        openPatientBillingButton.setPreferredSize(new Dimension(120, 26));
+        openPatientBillingButton.setBorderPainted(false);
+        openPatientBillingButton.setFocusPainted(false);
+
+        openInsurancePanelButton = new JButton("Insurance Portal");
+        openInsurancePanelButton.setFont(new Font("Inter 18pt Medium", Font.PLAIN, 12));
+        openInsurancePanelButton.setForeground(new Color(102, 102, 102));
+        openInsurancePanelButton.setBackground(new Color(248, 249, 250));
+        openInsurancePanelButton.setPreferredSize(new Dimension(130, 26));
+        openInsurancePanelButton.setBorderPainted(false);
+        openInsurancePanelButton.setFocusPainted(false);
+
+        processClaimButton = new JButton("Generate Claim");
+        processClaimButton.setFont(new Font("Inter 18pt Medium", Font.PLAIN, 12));
+        processClaimButton.setForeground(Color.WHITE);
+        processClaimButton.setBackground(new Color(40, 167, 69));
+        processClaimButton.setPreferredSize(new Dimension(130, 26));
+        processClaimButton.setBorderPainted(false);
+        processClaimButton.setFocusPainted(false);
+        processClaimButton.setEnabled(false);
+
+        headerButtonPanel.add(openPatientBillingButton);
+        headerButtonPanel.add(openInsurancePanelButton);
+        headerButtonPanel.add(processClaimButton);
+
+        // Cards container
+        detailsPanel = new JPanel();
+        detailsPanel.setBackground(Color.WHITE);
+        detailsPanel.setLayout(new BoxLayout(detailsPanel, BoxLayout.Y_AXIS));
+
+        JScrollPane detailsScrollPane = new JScrollPane(detailsPanel);
+        detailsScrollPane.setBackground(Color.WHITE);
+        detailsScrollPane.setBorder(BorderFactory.createEmptyBorder(1, 1, 30, 1));
+        detailsScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        // Add initial welcome card
+        showWelcomeCard();
+
+        // Use GroupLayout
+        javax.swing.GroupLayout detailsCardLayout = new javax.swing.GroupLayout(detailsCard);
+        detailsCard.setLayout(detailsCardLayout);
+        detailsCardLayout.setHorizontalGroup(
+            detailsCardLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, detailsCardLayout.createSequentialGroup()
+                .addGap(21, 21, 21)
+                .addGroup(detailsCardLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(detailsCardLayout.createSequentialGroup()
+                        .addComponent(detailsTitle)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(headerButtonPanel))
+                    .addComponent(detailsScrollPane, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 856, Short.MAX_VALUE))
+                .addGap(20, 20, 20))
+        );
+        detailsCardLayout.setVerticalGroup(
+            detailsCardLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(detailsCardLayout.createSequentialGroup()
+                .addGap(24, 24, 24)
+                .addGroup(detailsCardLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(detailsTitle)
+                    .addComponent(headerButtonPanel))
+                .addGap(18, 18, 18)
+                .addComponent(detailsScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 572, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+
+        rightPanel.add(detailsCard, BorderLayout.CENTER);
     }
 
     private void onProcessClaim() {
         String selectedValue = appointmentList.getSelectedValue();
         if (selectedValue == null) return;
-        
+
         Appointment appointmentToBill = appointmentMap.get(selectedValue);
-        
+
         // 1. Create the initial Claim object and save it.
         Claim newClaim = claimService.createClaimFromAppointment(appointmentToBill);
         if (newClaim == null) {
             JOptionPane.showMessageDialog(this, "Could not create the initial claim record in the database.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        
+
         JOptionPane.showMessageDialog(this, "Successfully created new Claim #" + newClaim.getId() + ".\nStarting validation process.", "Claim Created", JOptionPane.INFORMATION_MESSAGE);
 
         // 2. Create and execute the first handler in the chain.
         ClaimHandler validationHandler = new ValidationHandler();
         validationHandler.processClaim(newClaim);
-        
+
         // 3. Refresh the list.
         loadAppointmentsReadyForBilling();
     }
-    
+
     private void openInsurancePanel() {
         JDialog insuranceDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Insurance Agent Portal", true);
-        
-        // This will show an error until InsuranceApprovalPanel is created.
-        InsuranceApprovalPanel insurancePanel = new InsuranceApprovalPanel(); 
-        
+
+        InsuranceApprovalPanel insurancePanel = new InsuranceApprovalPanel();
+
         insuranceDialog.setContentPane(insurancePanel);
         insuranceDialog.pack();
+        insuranceDialog.setMinimumSize(new Dimension(800, 600));
         insuranceDialog.setLocationRelativeTo(this);
         insuranceDialog.setVisible(true);
-        
+
         // After the insurance agent is done, this main list might have changed, so we refresh it.
         loadAppointmentsReadyForBilling();
     }
 
-    private void initComponentsManual() {
-        setBackground(new java.awt.Color(247, 247, 247));
-        setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        // Header Panel
-        JPanel headerPanel = new JPanel();
-        headerPanel.setOpaque(false);
-        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
-        JLabel titleLabel = new JLabel("Admin: Start Insurance Claim");
-        titleLabel.setFont(new Font("Inter", Font.BOLD, 24));
-        JLabel subtitleLabel = new JLabel("Select a completed appointment to generate a claim and send it for validation.");
-        subtitleLabel.setFont(new Font("Inter", Font.PLAIN, 12));
-        headerPanel.add(titleLabel);
-        headerPanel.add(Box.createRigidArea(new Dimension(0, 5)));
-        headerPanel.add(subtitleLabel);
-        add(headerPanel, BorderLayout.NORTH);
-        logTextArea = new JTextArea(); 
-
-        // Main Content Split Pane
-        JSplitPane mainSplitPane = new JSplitPane();
-        mainSplitPane.setDividerLocation(350);
-        mainSplitPane.setDividerSize(8);
-        add(mainSplitPane, BorderLayout.CENTER);
-
-        // Left Side: Appointments List
-        RoundedPanel leftPanel = new RoundedPanel();
-        leftPanel.setBackground(Color.WHITE);
-        leftPanel.setLayout(new BorderLayout(10, 10));
-        leftPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-        leftPanel.setForeground(new java.awt.Color(234, 234, 234));
-        JLabel leftTitle = new JLabel("Appointments Ready for Billing");
-        leftTitle.setFont(new Font("Inter", Font.BOLD, 16));
-        refreshButton = new JButton("Refresh");
-        JPanel leftHeader = new JPanel(new BorderLayout());
-        leftHeader.setOpaque(false);
-        leftHeader.add(leftTitle, BorderLayout.WEST);
-        leftHeader.add(refreshButton, BorderLayout.EAST);
-        leftPanel.add(leftHeader, BorderLayout.NORTH);
-        appointmentList = new JList<>(listModel);
-        leftPanel.add(new JScrollPane(appointmentList), BorderLayout.CENTER);
-        mainSplitPane.setLeftComponent(leftPanel);
-        
-        // Right Side: Details and Actions
-        RoundedPanel rightPanel = new RoundedPanel();
-        rightPanel.setBackground(Color.WHITE);
-        rightPanel.setLayout(new BorderLayout(10, 10));
-        rightPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-          rightPanel.setForeground(new java.awt.Color(234, 234, 234));
-        
-        detailsTextArea = new JTextArea("Please select an appointment from the list.");
-        detailsTextArea.setEditable(false);
-        detailsTextArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        detailsTextArea.setWrapStyleWord(true);
-        detailsTextArea.setLineWrap(true);
-        JScrollPane detailsScrollPane = new JScrollPane(detailsTextArea);
-        detailsScrollPane.setBorder(BorderFactory.createTitledBorder("Selected Appointment Details"));
-        rightPanel.add(detailsScrollPane, BorderLayout.CENTER);
-
-        // Button Panel at the bottom
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setOpaque(false);
-        
-        // Create the new button
-        openPatientBillingButton = new JButton("Open Patient Billing UI"); // <<<--- CREATE THE BUTTON
-        openPatientBillingButton.setFont(new Font("Inter", Font.PLAIN, 12));
-        
-        openInsurancePanelButton = new JButton("Open Insurance Agent UI");
-        openInsurancePanelButton.setFont(new Font("Inter", Font.PLAIN, 12));
-
-        processClaimButton = new JButton("Generate & Submit Claim");
-        
-        openInsurancePanelButton = new JButton("Open Insurance Agent UI");
-        openInsurancePanelButton.setFont(new Font("Inter", Font.PLAIN, 12));
-
-        processClaimButton = new JButton("Generate & Submit Claim");
-        processClaimButton.setFont(new Font("Inter", Font.BOLD, 14));
-        processClaimButton.setBackground(new Color(0, 153, 255));
-        processClaimButton.setForeground(Color.WHITE);
-        processClaimButton.setEnabled(false);
-        
-         buttonPanel.add(openPatientBillingButton); // <<<--- ADD THE BUTTON
-        buttonPanel.add(openInsurancePanelButton);
-        buttonPanel.add(processClaimButton);
-        rightPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        mainSplitPane.setRightComponent(rightPanel);
-    }
-   
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jPanel1 = new javax.swing.JPanel();
-        jPanel3 = new javax.swing.JPanel();
-        jLabel1 = new javax.swing.JLabel();
-        jLabel2 = new javax.swing.JLabel();
-        jPanel2 = new javax.swing.JPanel();
-        jSplitPane1 = new javax.swing.JSplitPane();
-        jPanel4 = new javax.swing.JPanel();
-        roundedPanel1 = new system.ui.components.RoundedPanel();
-        jPanel5 = new javax.swing.JPanel();
-        roundedPanel2 = new system.ui.components.RoundedPanel();
-
-        setLayout(new java.awt.CardLayout());
-
-        jPanel1.setBackground(new java.awt.Color(255, 255, 255));
-        jPanel1.setLayout(new java.awt.BorderLayout(10, 0));
-
-        jPanel3.setBackground(new java.awt.Color(247, 247, 247));
-        jPanel3.setMaximumSize(new java.awt.Dimension(32767, 90));
-        jPanel3.setMinimumSize(new java.awt.Dimension(0, 90));
-        jPanel3.setPreferredSize(new java.awt.Dimension(987, 90));
-
-        jLabel1.setText("Insurance Claim Processing");
-        jLabel1.setFont(new java.awt.Font("Inter 18pt", 1, 24)); // NOI18N
-        jLabel1.setForeground(new java.awt.Color(5, 5, 5));
-
-        jLabel2.setText("Manage Insurance Claim Processing");
-        jLabel2.setFont(new java.awt.Font("Inter", 0, 12)); // NOI18N
-
-        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
-        jPanel3.setLayout(jPanel3Layout);
-        jPanel3Layout.setHorizontalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel3Layout.createSequentialGroup()
-                .addGap(20, 20, 20)
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel2)
-                    .addComponent(jLabel1))
-                .addContainerGap(752, Short.MAX_VALUE))
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
+        this.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 400, Short.MAX_VALUE)
         );
-        jPanel3Layout.setVerticalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel3Layout.createSequentialGroup()
-                .addGap(20, 20, 20)
-                .addComponent(jLabel1)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel2)
-                .addContainerGap(19, Short.MAX_VALUE))
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 300, Short.MAX_VALUE)
         );
-
-        jPanel1.add(jPanel3, java.awt.BorderLayout.PAGE_START);
-
-        jPanel2.setBackground(new java.awt.Color(247, 247, 247));
-        jPanel2.setMinimumSize(new java.awt.Dimension(900, 700));
-        jPanel2.setPreferredSize(new java.awt.Dimension(903, 700));
-        jPanel2.setLayout(new java.awt.CardLayout(10, 10));
-
-        jSplitPane1.setDividerLocation(360);
-        jSplitPane1.setDividerSize(0);
-        jSplitPane1.setMaximumSize(new java.awt.Dimension(2147483647, 500));
-        jSplitPane1.setMinimumSize(new java.awt.Dimension(800, 300));
-        jSplitPane1.setPreferredSize(new java.awt.Dimension(1250, 510));
-
-        jPanel4.setBackground(new java.awt.Color(247, 247, 247));
-        jPanel4.setMaximumSize(new java.awt.Dimension(300, 32767));
-        jPanel4.setMinimumSize(new java.awt.Dimension(300, 100));
-        jPanel4.setPreferredSize(new java.awt.Dimension(300, 510));
-        jPanel4.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 30, 0));
-
-        roundedPanel1.setBackground(new java.awt.Color(255, 255, 255));
-        roundedPanel1.setForeground(new java.awt.Color(234, 234, 234));
-        roundedPanel1.setMinimumSize(new java.awt.Dimension(330, 600));
-
-        javax.swing.GroupLayout roundedPanel1Layout = new javax.swing.GroupLayout(roundedPanel1);
-        roundedPanel1.setLayout(roundedPanel1Layout);
-        roundedPanel1Layout.setHorizontalGroup(
-            roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 339, Short.MAX_VALUE)
-        );
-        roundedPanel1Layout.setVerticalGroup(
-            roundedPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 600, Short.MAX_VALUE)
-        );
-
-        jPanel4.add(roundedPanel1);
-
-        jSplitPane1.setLeftComponent(jPanel4);
-
-        jPanel5.setBackground(new java.awt.Color(247, 247, 247));
-        jPanel5.setMaximumSize(new java.awt.Dimension(2147483647, 600));
-        jPanel5.setPreferredSize(new java.awt.Dimension(831, 600));
-        jPanel5.setLayout(new java.awt.BorderLayout(30, 0));
-
-        roundedPanel2.setBackground(new java.awt.Color(255, 255, 255));
-        roundedPanel2.setForeground(new java.awt.Color(234, 234, 234));
-        roundedPanel2.setMaximumSize(new java.awt.Dimension(32767, 600));
-        roundedPanel2.setMinimumSize(new java.awt.Dimension(0, 600));
-        roundedPanel2.setPreferredSize(new java.awt.Dimension(811, 600));
-
-        javax.swing.GroupLayout roundedPanel2Layout = new javax.swing.GroupLayout(roundedPanel2);
-        roundedPanel2.setLayout(roundedPanel2Layout);
-        roundedPanel2Layout.setHorizontalGroup(
-            roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 717, Short.MAX_VALUE)
-        );
-        roundedPanel2Layout.setVerticalGroup(
-            roundedPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 680, Short.MAX_VALUE)
-        );
-
-        jPanel5.add(roundedPanel2, java.awt.BorderLayout.CENTER);
-
-        jSplitPane1.setRightComponent(jPanel5);
-
-        jPanel2.add(jSplitPane1, "card2");
-
-        jPanel1.add(jPanel2, java.awt.BorderLayout.CENTER);
-
-        add(jPanel1, "card2");
     }// </editor-fold>//GEN-END:initComponents
 
-
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
-    private javax.swing.JPanel jPanel1;
-    private javax.swing.JPanel jPanel2;
-    private javax.swing.JPanel jPanel3;
-    private javax.swing.JPanel jPanel4;
-    private javax.swing.JPanel jPanel5;
-    private javax.swing.JSplitPane jSplitPane1;
-    private system.ui.components.RoundedPanel roundedPanel1;
-    private system.ui.components.RoundedPanel roundedPanel2;
     // End of variables declaration//GEN-END:variables
 }

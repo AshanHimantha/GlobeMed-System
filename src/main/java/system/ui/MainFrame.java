@@ -16,13 +16,7 @@ import system.enums.UserRole;
 import system.model.User;
 import system.service.AuthenticationService;
 import system.ui.components.NavItem;
-import system.ui.panels.AppointmentPanel;
-import system.ui.panels.ClaimProcessingPanel;
-import system.ui.panels.DashbaordPanel;
-import system.ui.panels.PatientRecordPanel;
-import system.ui.panels.PermissionTestPanel;
-import system.ui.panels.PharmacyPanel;
-import system.ui.panels.ReportGeneratorPanel;
+import system.ui.panels.*;
 
 
 public class MainFrame extends javax.swing.JFrame {
@@ -496,7 +490,8 @@ public class MainFrame extends javax.swing.JFrame {
         panels.put("BILLING", new ClaimProcessingPanel());
         panels.put("PERMISSIONS", new PermissionTestPanel());
         panels.put("REPORTS", new ReportGeneratorPanel());
-        panels.put("PHARMACY", new PharmacyPanel()); // Add PharmacyPanel
+        panels.put("PHARMACY", new PharmacyPanel());
+        panels.put("DOCTOR_SCHEDULE", new DoctorSchedulePanel()); // Add DoctorSchedulePanel
 
         // Add all panels to jPanel3 with CardLayout
         for (Map.Entry<String, javax.swing.JPanel> entry : panels.entrySet()) {
@@ -528,7 +523,8 @@ public class MainFrame extends javax.swing.JFrame {
             case "BILLING": return "Billing & Claims";
             case "PERMISSIONS": return "Permissions";
             case "REPORTS": return "Reports";
-            case "PHARMACY": return "Pharmacy"; // Add Pharmacy display name
+            case "PHARMACY": return "Pharmacy";
+            case "DOCTOR_SCHEDULE": return "Doctor Schedule";
             default: return panelName;
         }
     }
@@ -541,10 +537,10 @@ public class MainFrame extends javax.swing.JFrame {
         // 2. A central permission map or logic block
         // This could also be implemented using the Strategy pattern for a cleaner design!
         Map<UserRole, List<String>> rolePermissions = new HashMap<>();
-        rolePermissions.put(UserRole.DOCTOR, List.of("APPOINTMENTS","REPORTS"));
-        rolePermissions.put(UserRole.NURSE, List.of("DASHBOARD", "PATIENT_RECORDS", "APPOINTMENTS", "PERMISSIONS"));
+        rolePermissions.put(UserRole.DOCTOR, List.of("APPOINTMENTS","REPORTS", "DOCTOR_SCHEDULE"));
+        rolePermissions.put(UserRole.NURSE, List.of("DASHBOARD", "PATIENT_RECORDS", "APPOINTMENTS", "PERMISSIONS", "DOCTOR_SCHEDULE"));
         rolePermissions.put(UserRole.PHARMACIST, List.of("DASHBOARD", "PATIENT_RECORDS", "PERMISSIONS", "PHARMACY"));
-        rolePermissions.put(UserRole.ADMIN, List.of("DASHBOARD", "APPOINTMENTS", "BILLING", "PERMISSIONS", "REPORTS","PHARMACY"));
+        rolePermissions.put(UserRole.ADMIN, List.of("DASHBOARD", "APPOINTMENTS", "BILLING", "PERMISSIONS", "REPORTS","PHARMACY", "DOCTOR_SCHEDULE"));
 
         // 3. Get the list of allowed panels for the current user's role
         List<String> allowedPanels = rolePermissions.get(role);
@@ -563,6 +559,7 @@ public class MainFrame extends javax.swing.JFrame {
                 {"Dashboard", "/img/dashboard.png", "/img/dashboard.png", "DASHBOARD"},
                 {"Patient Records", "/img/health-report.png", "/img/health-report.png", "PATIENT_RECORDS"},
                 {"Appointments", "/img/calendar.png", "/img/calendar.png", "APPOINTMENTS"},
+                {"Doctor Schedule", "/img/calendar.png", "/img/calendar.png", "DOCTOR_SCHEDULE"},
                 {"Billing & Claims", "/img/bill.png", "/img/bill.png", "BILLING"},
                 {"Permissions", "/img/safety.png", "/img/safety.png", "PERMISSIONS"},
                 {"Reports", "/img/report.png", "/img/report.png", "REPORTS"},

@@ -11,6 +11,7 @@
     <class>com.globemed.system.model.Prescription</class>
     <class>com.globemed.system.model.PrescriptionItem</class>
     <class>com.globemed.system.model.BillableItem</class>
+    <class>com.globemed.system.model.DoctorSchedule</class>
     <validation-mode>NONE</validation-mode>
     <properties>
       <!-- MySQL Database Connection Settings -->
@@ -23,7 +24,7 @@
       <property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect"/>
       <property name="hibernate.hbm2ddl.auto" value="update"/>
       <property name="hibernate.show_sql" value="true"/>
-      <property name="jakarta.persistence.schema-generation.database.action" value="none"/>
+      <property name="jakarta.persistence.schema-generation.database.action" value="drop-and-create"/>
     </properties>
   </persistence-unit>
 </persistence>

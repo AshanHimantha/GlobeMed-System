@@ -7,6 +7,7 @@ import java.util.List;
 import system.enums.AppointmentType;
 import system.enums.PaymentMethod;
 import system.model.Appointment;
+import system.model.MedicalService;
 import system.model.Patient;
 import system.model.User;
 
@@ -17,30 +18,32 @@ import system.model.User;
 public class AppointmentService {
 
 
-public Appointment createAppointment(Patient patient, User doctor, User scheduledBy, AppointmentType type, String serviceName, double price, LocalDateTime dateTime) {
+    public Appointment createAppointment(Patient patient, User doctor, User scheduledBy, AppointmentType type, String serviceName, double price, LocalDateTime dateTime, MedicalService service) {
         EntityManager em = PersistenceManager.getInstance().getEntityManager();
         try {
             em.getTransaction().begin();
-            
-            // --- THIS IS THE FIX ---
-            // Now calling the correct 7-parameter constructor.
+
+            // Create the appointment using the correct constructor
             Appointment newAppointment = new Appointment(patient, doctor, scheduledBy, type, serviceName, price, dateTime);
-            
+
+            // If a MedicalService object was provided (only for Diagnostics), we need to make sure it's managed by JPA.
+            if (service != null && service.getId() != null) {
+                MedicalService managedService = em.find(MedicalService.class, service.getId());
+                newAppointment.setMedicalService(managedService);
+            }
+
             em.persist(newAppointment);
             em.getTransaction().commit();
             return newAppointment;
         } catch (Exception e) {
-            if (em.getTransaction().isActive()) {
-                em.getTransaction().rollback();
-            }
+            if (em.getTransaction().isActive()) em.getTransaction().rollback();
             e.printStackTrace();
             return null;
         } finally {
-            if (em != null) {
-                em.close();
-            }
+            if (em != null) em.close();
         }
     }
+
 
 public List<Appointment> getAllAppointments() {
         EntityManager em = PersistenceManager.getInstance().getEntityManager();
