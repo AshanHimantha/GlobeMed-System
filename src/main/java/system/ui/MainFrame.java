@@ -54,6 +54,8 @@ public class MainFrame extends javax.swing.JFrame {
             // Ensure NavItem components are properly initialized with correct visibility
             updateNavItemsTextVisibility();
 
+            // Set role-based icon and text for user button
+            setRoleBasedButton();
 
             // You can set icons here if you have them:
             // navItem1.setIcons(defaultIcon, activeIcon);
@@ -61,6 +63,85 @@ public class MainFrame extends javax.swing.JFrame {
         });
     }
 
+    /**
+     * Sets the icon and text for jButton1 based on the current user's role
+     * with clean white background and light gray border styling
+     */
+    private void setRoleBasedButton() {
+        try {
+            User currentUser = AuthenticationService.getInstance().getLoggedInUser();
+            UserRole role = currentUser.getRole();
+
+            String iconPath;
+            String buttonText;
+
+            switch (role) {
+                case ADMIN:
+                    iconPath = "/img/software-developer.png";
+                    buttonText = "ADMIN";
+                    break;
+                case PHARMACIST:
+                    iconPath = "/img/pharmacist.png";
+                    buttonText = "PHARMACIST";
+                    break;
+                case NURSE:
+                    iconPath = "/img/nurse.png";
+                    buttonText = "NURSE";
+                    break;
+                case DOCTOR:
+                    iconPath = "/img/doctor.png";
+                    buttonText = "DOCTOR";
+                    break;
+                default:
+                    iconPath = "/img/software-developer.png";
+                    buttonText = "USER";
+                    break;
+            }
+
+            jButton1.setIcon(new javax.swing.ImageIcon(getClass().getResource(iconPath)));
+            jButton1.setText(buttonText);
+
+            // Clean styling with white background and light gray rounded border
+            jButton1.setBorderPainted(true);
+            jButton1.setContentAreaFilled(true);
+            jButton1.setFocusPainted(false);
+            jButton1.setFocusable(false);
+
+            jButton1.setBackground(java.awt.Color.WHITE);
+            jButton1.setForeground(new java.awt.Color(64, 64, 64)); // Dark gray text
+            jButton1.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+            jButton1.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+
+            // Set horizontal text position to ensure text appears next to icon
+            jButton1.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+            jButton1.setVerticalTextPosition(javax.swing.SwingConstants.CENTER);
+            jButton1.setIconTextGap(8);
+
+          
+
+
+        } catch (Exception e) {
+            System.err.println("Could not set role-based button: " + e.getMessage());
+            // Fallback to default appearance
+            jButton1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/img/software-developer.png")));
+            jButton1.setText("USER");
+
+            // Apply clean styling even for fallback
+            jButton1.setBorderPainted(true);
+            jButton1.setContentAreaFilled(true);
+            jButton1.setFocusPainted(false);
+            jButton1.setFocusable(false);
+            jButton1.setOpaque(true);
+            jButton1.setBackground(java.awt.Color.WHITE);
+            jButton1.setForeground(new java.awt.Color(64, 64, 64));
+            jButton1.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+            jButton1.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+            jButton1.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                new javax.swing.border.LineBorder(new java.awt.Color(200, 200, 200), 1, true), // Rounded line border
+                javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10)
+            ));
+        }
+    }
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -79,6 +160,7 @@ public class MainFrame extends javax.swing.JFrame {
         jSplitPane1 = new javax.swing.JSplitPane();
         jPanel2 = new javax.swing.JPanel();
         jLabel3 = new javax.swing.JLabel();
+        jButton1 = new javax.swing.JButton();
         jPanel3 = new javax.swing.JPanel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -196,6 +278,9 @@ public class MainFrame extends javax.swing.JFrame {
         jLabel3.setFont(new java.awt.Font("Inter", 0, 18)); // NOI18N
         jLabel3.setText("jLabel3");
 
+        jButton1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/img/software-developer.png"))); // NOI18N
+        jButton1.setText("ADMIN");
+
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
@@ -203,13 +288,17 @@ public class MainFrame extends javax.swing.JFrame {
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addGap(20, 20, 20)
                 .addComponent(jLabel3)
-                .addContainerGap(888, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 848, Short.MAX_VALUE)
+                .addComponent(jButton1)
+                .addGap(16, 16, 16))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                .addContainerGap(22, Short.MAX_VALUE)
-                .addComponent(jLabel3)
+                .addContainerGap(14, Short.MAX_VALUE)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jButton1)
+                    .addComponent(jLabel3))
                 .addGap(20, 20, 20))
         );
 
@@ -384,6 +473,7 @@ public class MainFrame extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
@@ -405,7 +495,7 @@ public class MainFrame extends javax.swing.JFrame {
      */
     private void initializePanels() {
         // Create instances of all panels
-        panels.put("DASHBOARD", new DashbaordPanel());
+//        panels.put("DASHBOARD", new DashbaordPanel());
         panels.put("PATIENT_RECORDS", new PatientRecordPanel());
         panels.put("APPOINTMENTS", new AppointmentPanel());
         panels.put("BILLING", new ClaimProcessingPanel());
@@ -438,7 +528,7 @@ public class MainFrame extends javax.swing.JFrame {
      */
     private String getPanelDisplayName(String panelName) {
         switch (panelName) {
-            case "DASHBOARD": return "Dashboard";
+
             case "PATIENT_RECORDS": return "Patient Records";
             case "APPOINTMENTS": return "Appointments";
             case "BILLING": return "Billing & Claims";
@@ -458,10 +548,10 @@ public class MainFrame extends javax.swing.JFrame {
         // 2. A central permission map or logic block
         // This could also be implemented using the Strategy pattern for a cleaner design!
         Map<UserRole, List<String>> rolePermissions = new HashMap<>();
-        rolePermissions.put(UserRole.DOCTOR, List.of("APPOINTMENTS","REPORTS", "DOCTOR_SCHEDULE"));
-        rolePermissions.put(UserRole.NURSE, List.of("DASHBOARD", "PATIENT_RECORDS", "APPOINTMENTS", "PERMISSIONS", "DOCTOR_SCHEDULE"));
-        rolePermissions.put(UserRole.PHARMACIST, List.of("DASHBOARD", "PATIENT_RECORDS", "PERMISSIONS", "PHARMACY"));
-        rolePermissions.put(UserRole.ADMIN, List.of("DASHBOARD", "APPOINTMENTS", "BILLING", "PERMISSIONS", "REPORTS","PHARMACY", "DOCTOR_SCHEDULE"));
+        rolePermissions.put(UserRole.DOCTOR, List.of("APPOINTMENTS"));
+        rolePermissions.put(UserRole.NURSE, List.of("PATIENT_RECORDS", "APPOINTMENTS"));
+        rolePermissions.put(UserRole.PHARMACIST, List.of( "PHARMACY"));
+        rolePermissions.put(UserRole.ADMIN, List.of( "APPOINTMENTS","PATIENT_RECORDS", "BILLING", "PERMISSIONS", "REPORTS","PHARMACY", "DOCTOR_SCHEDULE"));
 
         // 3. Get the list of allowed panels for the current user's role
         List<String> allowedPanels = rolePermissions.get(role);

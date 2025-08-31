@@ -17,6 +17,10 @@ public class DoctorSchedule {
     @JoinColumn(name = "doctor_username", nullable = false)
     private User doctor;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "facility_id", nullable = false)
+    private Facility facility;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "day_of_week", nullable = false)
     private DayOfWeek dayOfWeek;
@@ -32,11 +36,22 @@ public class DoctorSchedule {
 
     public DoctorSchedule() {}
 
-    public DoctorSchedule(User doctor, DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime) {
+
+
+    public DoctorSchedule(User doctor, Facility facility, DayOfWeek day, LocalTime start, LocalTime end) {
         this.doctor = doctor;
-        this.dayOfWeek = dayOfWeek;
-        this.startTime = startTime;
-        this.endTime = endTime;
+        this.facility = facility;
+        this.dayOfWeek = day;
+        this.startTime = start;
+        this.endTime = end;
+    }
+
+    public Facility getFacility() {
+        return facility;
+    }
+
+    public void setFacility(Facility facility) {
+        this.facility = facility;
     }
 
 

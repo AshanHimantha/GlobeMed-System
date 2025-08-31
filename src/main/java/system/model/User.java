@@ -42,6 +42,12 @@ public class User {
     
     @Column(name = "consultation_fee")
     private Double consultationFee;
+    
+    // --- THIS IS THE NEW FIELD ---
+    @ManyToOne(fetch = FetchType.EAGER) // Eager is fine for a user's primary location
+    @JoinColumn(name = "facility_id") // This will be the foreign key column
+    private Facility worksAt;
+    // --- END OF NEW FIELD ---
 
 
     public User() {}
@@ -54,6 +60,10 @@ public class User {
         this.firstName = firstName;
         this.lastName = lastName;
     }
+    
+     // --- ADD GETTER AND SETTER FOR THE NEW FIELD ---
+    public Facility getWorksAt() { return worksAt; }
+    public void setWorksAt(Facility worksAt) { this.worksAt = worksAt; }
 
     // --- GETTERS AND SETTERS FOR ALL FIELDS ---
     public String getUsername() { return username; }

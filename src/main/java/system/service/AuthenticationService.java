@@ -35,14 +35,10 @@ public class AuthenticationService {
             String providedPasswordHash = hashPassword(password);
             if (user.getPasswordHash().equals(providedPasswordHash)) {
                 this.loggedInUser = user;
-
-                // --- NEW: Update last login date ---
                 em.getTransaction().begin();
                 user.setLastLoginDate(LocalDateTime.now());
                 em.merge(user); // Persist the change
                 em.getTransaction().commit();
-                // --- END NEW ---
-
                 return true;
             }
         } catch (NoResultException e) {
