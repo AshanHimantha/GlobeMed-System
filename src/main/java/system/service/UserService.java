@@ -62,4 +62,53 @@ public class UserService {
     }
 }
     
+    public List<User> getAllUsers() {
+        EntityManager em = PersistenceManager.getInstance().getEntityManager();
+        try {
+            TypedQuery<User> query = em.createQuery(
+                "SELECT u FROM User u ORDER BY u.lastName, u.firstName",
+                User.class
+            );
+            return query.getResultList();
+        } catch (Exception e) {
+            System.err.println("Error fetching all users: " + e.getMessage());
+            e.printStackTrace();
+            return Collections.emptyList();
+        } finally {
+            if (em != null) {
+                em.close();
+            }
+        }
+    }
+
+    public void addUser(String username, String password, UserRole role, String firstName, String lastName, String contactNumber, String address, Double consultationFee) {
+        EntityManager em = PersistenceManager.getInstance().getEntityManager();
+        try {
+            em.getTransaction().begin();
+
+            User user = new User(username, password, role, firstName, lastName);
+            user.setContactNumber(contactNumber);
+            user.setAddress(address);
+
+            // Only set consultation fee for doctors
+            if (role == UserRole.DOCTOR && consultationFee != null) {
+                user.setConsultationFee(consultationFee);
+            }
+
+            em.persist(user);
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            System.err.println("Error adding user: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to add user", e);
+        } finally {
+            if (em != null) {
+                em.close();
+            }
+        }
+    }
+
 }
