@@ -1,4 +1,3 @@
-
 package system.model;
 
 
@@ -12,40 +11,29 @@ import system.patterns.visitor.Visitable;
 
 @Entity
 @Table(name = "appointments")
-public class Appointment implements Visitable{
+public class Appointment implements Visitable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "appointment_id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.EAGER) // Eager to avoid LazyInitializationException in UI
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "doctor_username", nullable = true)
+    @JoinColumn(name = "doctor_username", nullable = true) // Can be null for Diagnostics
     private User doctor;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "scheduled_by_username", nullable = false)
     private User scheduledBy;
 
-   
-     @Override
-    @Transient // Tell JPA to ignore this method for database mapping
-    public void accept(ReportVisitor visitor) {
-        visitor.visit(this); // The "double dispatch" mechanism
-    }
-    
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "service_id", nullable = true) // This is now optional
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "service_id", nullable = true) // Can be null for Consultations/Surgeries
     private MedicalService medicalService;
 
-    // These fields store the details for ALL appointments.
-    // For diagnostics, they are copied from the MedicalService.
-    // For others, they are entered directly.
     @Enumerated(EnumType.STRING)
     @Column(name = "appointment_type", nullable = false)
     private AppointmentType type;
@@ -55,36 +43,41 @@ public class Appointment implements Visitable{
 
     @Column(name = "price", nullable = false)
     private double price;
-    
+
     @Column(name = "appointment_datetime", nullable = false)
     private LocalDateTime appointmentDateTime;
 
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, length = 50)
     private String status;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method")
+    @Column(name = "payment_method", length = 20)
     private PaymentMethod paymentMethod;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payment_confirmed_by_username") // This will be the new column in the DB
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "payment_confirmed_by_username")
     private User paymentConfirmedBy;
 
     public Appointment() {}
 
     /**
-     * Final, flexible constructor.
-     * The 'service' parameter is nullable.
+     * Final, flexible constructor used by the AppointmentService.
      */
-public Appointment(Patient patient, User doctor, User scheduledBy, AppointmentType type, String serviceName, double price, LocalDateTime dateTime) {
+    public Appointment(Patient patient, User doctor, User scheduledBy, AppointmentType type, String serviceName, double price, LocalDateTime dateTime) {
         this.patient = patient;
-        this.doctor = doctor; // This can now be null
+        this.doctor = doctor;
         this.scheduledBy = scheduledBy;
         this.type = type;
         this.serviceName = serviceName;
         this.price = price;
-        this.appointmentDateTime = dateTime;       
-      switch (type) {
+        this.appointmentDateTime = dateTime;
+
+        // This constructor can be called for Diagnostics, but the linked service will be null.
+        // The service layer will be responsible for setting it.
+        this.medicalService = null;
+
+        // Set initial status based on the appointment type
+        switch (type) {
             case CONSULTATION:
             case DIAGNOSTIC:
                 this.status = "PENDING_PAYMENT";
@@ -92,14 +85,10 @@ public Appointment(Patient patient, User doctor, User scheduledBy, AppointmentTy
             case SURGERY:
                 this.status = "PENDING_CONFIRMATION";
                 break;
-            default:
-                this.status = "SCHEDULED"; // A safe default
-                break;
         }
-      
     }
 
-    // --- Getters and Setters for all fields ---
+    // --- Getters and Setters ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Patient getPatient() { return patient; }
@@ -124,4 +113,10 @@ public Appointment(Patient patient, User doctor, User scheduledBy, AppointmentTy
     public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
     public User getPaymentConfirmedBy() { return paymentConfirmedBy; }
     public void setPaymentConfirmedBy(User paymentConfirmedBy) { this.paymentConfirmedBy = paymentConfirmedBy; }
+
+    @Override
+    @Transient // Tell JPA to ignore this method for database mapping
+    public void accept(ReportVisitor visitor) {
+        visitor.visit(this);
+    }
 }

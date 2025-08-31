@@ -19,8 +19,8 @@ public class NavItem extends javax.swing.JPanel {
 
     private JLabel iconLabel;
     private JLabel textLabel;
-    
-    
+
+
     private boolean active = false;
 
     private Color bgDefault = Color.WHITE;
@@ -29,19 +29,19 @@ public class NavItem extends javax.swing.JPanel {
     private Color textActive = Color.black;
     private Color textInactive = new Color(169, 169, 169); // Light gray for inactive items
 
-    
+
     private Icon defaultIcon;
     private Icon activeIcon;
 
     public NavItem() {
-        initComponents();      
+        initComponents();
         setupUI();
-         
-         
+
+
     }
-    
+
      public NavItem(String text, Icon defaultIcon, Icon activeIcon) {
-        
+
          this();
         this.defaultIcon = defaultIcon;
         this.activeIcon = activeIcon;

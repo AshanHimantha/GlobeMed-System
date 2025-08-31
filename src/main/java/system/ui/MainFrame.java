@@ -16,12 +16,7 @@ import system.enums.UserRole;
 import system.model.User;
 import system.service.AuthenticationService;
 import system.ui.components.NavItem;
-import system.ui.panels.AppointmentPanel;
-import system.ui.panels.ClaimProcessingPanel;
-import system.ui.panels.DashbaordPanel;
-import system.ui.panels.PatientRecordPanel;
-import system.ui.panels.PermissionTestPanel;
-import system.ui.panels.ReportGeneratorPanel;
+import system.ui.panels.*;
 
 
 public class MainFrame extends javax.swing.JFrame {
@@ -327,84 +322,6 @@ public class MainFrame extends javax.swing.JFrame {
     }
 
 
-    private void initializeNavItems() {
-        // Clear existing nav items from the panel
-        jPanel6.removeAll();
-        navItems.clear();
-
-        String[][] navItemData = {
-                {"Dashboard", "/img/dashboard.png", "/img/dashboard.png", "DASHBOARD"},
-                {"Patient Records", "/img/health-report.png", "/img/health-report.png", "PATIENT_RECORDS"},
-                {"Appointments", "/img/calendar.png", "/img/calendar.png", "APPOINTMENTS"},
-                {"Billing & Claims", "/img/bill.png", "/img/bill.png", "BILLING"},
-                {"Permissions", "/img/safety.png", "/img/safety.png", "PERMISSIONS"},
-                {"Reports", "/img/report.png", "/img/report.png", "REPORTS"}
-        };
-
-        // Create and add nav items with icons
-        for (int i = 0; i < navItemData.length; i++) {
-            String[] itemData = navItemData[i];
-            String itemName = itemData[0];
-            String defaultIconPath = itemData[1];
-            String activeIconPath = itemData[2];
-
-            try {
-                // Load icons from resources (remove /src/main/resources prefix)
-                javax.swing.ImageIcon defaultIcon = new javax.swing.ImageIcon(getClass().getResource(defaultIconPath));
-                javax.swing.ImageIcon activeIcon = new javax.swing.ImageIcon(getClass().getResource(activeIconPath));
-
-                // Create NavItem with text and icons
-                system.ui.components.NavItem navItem = new system.ui.components.NavItem(itemName, defaultIcon, activeIcon);
-                navItem.setFont(new java.awt.Font("Inter", 0, 16));
-                navItem.setName(itemName);
-
-                // Add click listener for mutual exclusion
-                final int itemIndex = i;
-                navItem.addMouseListener(new java.awt.event.MouseAdapter() {
-                    @Override
-                    public void mouseClicked(java.awt.event.MouseEvent evt) {
-                        setActiveNavItem(itemIndex);
-                    }
-                });
-
-                // Don't set active here - we'll do it properly after all items are created
-                // Add to list and panel
-                navItems.add(navItem);
-                jPanel6.add(navItem);
-            } catch (Exception e) {
-                // Fallback: create without icons if icon loading fails
-                system.ui.components.NavItem navItem = new system.ui.components.NavItem();
-                navItem.setFont(new java.awt.Font("Inter", 0, 16));
-                navItem.setText(itemName);
-                navItem.setName(itemName);
-
-                // Add click listener for mutual exclusion
-                final int itemIndex = i;
-                navItem.addMouseListener(new java.awt.event.MouseAdapter() {
-                    @Override
-                    public void mouseClicked(java.awt.event.MouseEvent evt) {
-                        setActiveNavItem(itemIndex);
-                    }
-                });
-
-                // Don't set active here - we'll do it properly after all items are created
-                navItems.add(navItem);
-                jPanel6.add(navItem);
-
-                System.err.println("Could not load icons for " + itemName + ": " + e.getMessage());
-            }
-        }
-
-        // Refresh the panel
-        jPanel6.revalidate();
-        jPanel6.repaint();
-
-        // Set Dashboard (index 0) as active by default using the proper method
-        if (!navItems.isEmpty()) {
-            setActiveNavItem(0);
-        }
-    }
-
 
     private void setActiveNavItem(int activeIndex) {
         // Deactivate all nav items
@@ -494,6 +411,8 @@ public class MainFrame extends javax.swing.JFrame {
         panels.put("BILLING", new ClaimProcessingPanel());
         panels.put("PERMISSIONS", new PermissionTestPanel());
         panels.put("REPORTS", new ReportGeneratorPanel());
+        panels.put("PHARMACY", new PharmacyPanel());
+        panels.put("DOCTOR_SCHEDULE", new DoctorSchedulePanel()); // Add DoctorSchedulePanel
 
         // Add all panels to jPanel3 with CardLayout
         for (Map.Entry<String, javax.swing.JPanel> entry : panels.entrySet()) {
@@ -525,6 +444,8 @@ public class MainFrame extends javax.swing.JFrame {
             case "BILLING": return "Billing & Claims";
             case "PERMISSIONS": return "Permissions";
             case "REPORTS": return "Reports";
+            case "PHARMACY": return "Pharmacy";
+            case "DOCTOR_SCHEDULE": return "Doctor Schedule";
             default: return panelName;
         }
     }
@@ -537,10 +458,10 @@ public class MainFrame extends javax.swing.JFrame {
         // 2. A central permission map or logic block
         // This could also be implemented using the Strategy pattern for a cleaner design!
         Map<UserRole, List<String>> rolePermissions = new HashMap<>();
-        rolePermissions.put(UserRole.DOCTOR, List.of("APPOINTMENTS","REPORTS"));
-        rolePermissions.put(UserRole.NURSE, List.of("DASHBOARD", "PATIENT_RECORDS", "APPOINTMENTS", "PERMISSIONS"));
-        rolePermissions.put(UserRole.PHARMACIST, List.of("DASHBOARD", "PATIENT_RECORDS", "PERMISSIONS"));
-        rolePermissions.put(UserRole.ADMIN, List.of("DASHBOARD", "APPOINTMENTS", "BILLING", "PERMISSIONS", "REPORTS"));
+        rolePermissions.put(UserRole.DOCTOR, List.of("APPOINTMENTS","REPORTS", "DOCTOR_SCHEDULE"));
+        rolePermissions.put(UserRole.NURSE, List.of("DASHBOARD", "PATIENT_RECORDS", "APPOINTMENTS", "PERMISSIONS", "DOCTOR_SCHEDULE"));
+        rolePermissions.put(UserRole.PHARMACIST, List.of("DASHBOARD", "PATIENT_RECORDS", "PERMISSIONS", "PHARMACY"));
+        rolePermissions.put(UserRole.ADMIN, List.of("DASHBOARD", "APPOINTMENTS", "BILLING", "PERMISSIONS", "REPORTS","PHARMACY", "DOCTOR_SCHEDULE"));
 
         // 3. Get the list of allowed panels for the current user's role
         List<String> allowedPanels = rolePermissions.get(role);
@@ -559,9 +480,11 @@ public class MainFrame extends javax.swing.JFrame {
                 {"Dashboard", "/img/dashboard.png", "/img/dashboard.png", "DASHBOARD"},
                 {"Patient Records", "/img/health-report.png", "/img/health-report.png", "PATIENT_RECORDS"},
                 {"Appointments", "/img/calendar.png", "/img/calendar.png", "APPOINTMENTS"},
+                {"Doctor Schedule", "/img/online-doctor.png", "/img/online-doctor.png", "DOCTOR_SCHEDULE"},
                 {"Billing & Claims", "/img/bill.png", "/img/bill.png", "BILLING"},
                 {"Permissions", "/img/safety.png", "/img/safety.png", "PERMISSIONS"},
-                {"Reports", "/img/report.png", "/img/report.png", "REPORTS"}
+                {"Reports", "/img/report.png", "/img/report.png", "REPORTS"},
+                {"Pharmacy", "/img/pharmacy.png", "/img/pharmacy.png", "PHARMACY"}
         };
 
         // 4. Iterate through the master navItemData and only create buttons for allowed panels

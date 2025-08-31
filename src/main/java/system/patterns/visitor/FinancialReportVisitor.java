@@ -1,4 +1,3 @@
-
 package system.patterns.visitor;
 
 import java.text.NumberFormat;
@@ -64,5 +63,26 @@ public class FinancialReportVisitor implements ReportVisitor{
         report.append(String.format("TOTAL ESTIMATED REVENUE: %s\n", currencyFormat.format(totalRevenue)));
         
         return report.toString();
+    }
+
+    // Getter methods for individual metrics to support card-based display
+    public double getTotalRevenueFromAppointments() {
+        return totalRevenueFromAppointments;
+    }
+
+    public double getTotalRevenueFromClaims() {
+        return totalRevenueFromClaims;
+    }
+
+    public double getTotalRevenue() {
+        return totalRevenueFromAppointments + totalRevenueFromClaims;
+    }
+
+    public int getVisitedAppointments() {
+        return visitedAppointments;
+    }
+
+    public int getVisitedClaims() {
+        return visitedClaims;
     }
 }

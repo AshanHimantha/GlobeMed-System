@@ -1,4 +1,3 @@
-
 package system.patterns.visitor;
 
 import system.model.Appointment;
@@ -51,5 +50,30 @@ public class ActivityReportVisitor implements ReportVisitor {
         report.append(String.format("- Closed Claims: %d\n", closedClaims));
 
         return report.toString();
+    }
+
+    // Getter methods for individual metrics to support card-based display
+    public int getScheduledAppointments() {
+        return scheduledAppointments;
+    }
+
+    public int getCompletedAppointments() {
+        return completedAppointments;
+    }
+
+    public int getPendingClaims() {
+        return pendingClaims;
+    }
+
+    public int getClosedClaims() {
+        return closedClaims;
+    }
+
+    public int getTotalAppointments() {
+        return scheduledAppointments + completedAppointments;
+    }
+
+    public int getTotalClaims() {
+        return pendingClaims + closedClaims;
     }
 }

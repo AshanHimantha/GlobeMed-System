@@ -171,7 +171,7 @@ private void updateCardVisualState() {
         // 2. Define the payment options and create the dialog message.
         String[] options = {"CASH", "CARD", "INSURANCE"};
         String message = String.format(
-            "Select payment method for:\n%s\nAmount: $%.2f",
+            "Select payment method for:\n%s\nAmount: Rs.%.2f",
             appointment.getServiceName(),
             appointment.getPrice()
         );
