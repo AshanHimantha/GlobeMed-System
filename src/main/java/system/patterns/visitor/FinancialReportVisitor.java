@@ -1,6 +1,7 @@
 package system.patterns.visitor;
 
 import java.text.NumberFormat;
+import java.time.LocalDate;
 import system.enums.PaymentMethod;
 import system.model.Appointment;
 import system.model.Claim;
@@ -28,6 +29,24 @@ public class FinancialReportVisitor implements ReportVisitor{
             totalRevenueFromAppointments += appointment.getPrice();
         }
         visitedAppointments++;
+    }
+    
+    @Override public String getReportTitle() { return "Financial Summary Report"; }
+    
+     @Override public String getDateRange(LocalDate from, LocalDate to) {
+        return from.toString() + " to " + to.toString();
+    }
+     
+     @Override public String getSummaryHtml() {
+        NumberFormat currency = NumberFormat.getCurrencyInstance();
+        return String.format(
+            "<p>Total Revenue from Direct Payments: <b>%s</b></p>" +
+            "<p>Total Revenue from Closed Claims: <b>%s</b></p>" +
+            "<hr><p>TOTAL ESTIMATED REVENUE: <b>%s</b></p>",
+            currency.format(totalRevenueFromAppointments),
+            currency.format(totalRevenueFromClaims),
+            currency.format(totalRevenueFromAppointments + totalRevenueFromClaims)
+        );
     }
 
     /**

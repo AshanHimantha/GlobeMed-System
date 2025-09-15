@@ -22,6 +22,8 @@ import system.model.Appointment;
 import system.model.User;
 import system.service.AppointmentService;
 import system.service.AuthenticationService;
+import system.service.DocumentGenerationService;
+import system.ui.dialogs.ReceiptDialog;
 
 /**
  *
@@ -188,32 +190,50 @@ private void updateCardVisualState() {
             options[0]
         );
 
-        // 4. Process the user's choice.
-        if (choice != JOptionPane.CLOSED_OPTION) {
+       if (choice != JOptionPane.CLOSED_OPTION) {
             PaymentMethod selectedMethod = PaymentMethod.valueOf(options[choice]);
             boolean success = false;
 
-            // 5. Call the correct service method, passing the logged-in user.
-            //    This is the corrected logic block.
+            // 5. Call the correct service method to update the database.
             if (selectedMethod == PaymentMethod.INSURANCE) {
+                // For insurance, we just update the status to SCHEDULED and set the payment method.
                 success = appointmentService.updatePaymentMethodAndStatus(appointment.getId(), selectedMethod, "SCHEDULED", confirmingUser);
             } else { // For CASH or CARD
+                // For direct payments, we use the dedicated method.
                 success = appointmentService.processDirectPayment(appointment.getId(), selectedMethod, confirmingUser);
             }
 
-            // 6. Provide feedback and refresh the UI.
+            // 6. Provide feedback and trigger follow-up actions.
             if (success) {
-                JOptionPane.showMessageDialog(this,
-                    "Payment confirmed by " + confirmingUser.getUsername() + ".\nThe appointment is now scheduled.",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE);
+                // First, update the local 'appointment' object in this card to reflect the changes.
+                // This is crucial for the receipt to have the correct, up-to-date information.
+                appointment.setStatus("SCHEDULED");
+                appointment.setPaymentMethod(selectedMethod);
+                appointment.setPaymentConfirmedBy(confirmingUser);
                 
+                // Now, decide what to show the user.
+                if (selectedMethod == PaymentMethod.CASH || selectedMethod == PaymentMethod.CARD) {
+                    // --- Generate and show the HTML receipt ---
+                    DocumentGenerationService docService = new DocumentGenerationService();
+                    String receiptHtml = docService.generatePaymentReceiptAsHtml(appointment);
+                    
+                    JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
+                    ReceiptDialog receiptDialog = new ReceiptDialog(parentFrame, "Payment Receipt - Appt #" + appointment.getId(), receiptHtml);
+                    receiptDialog.setVisible(true);
+                } else { // Insurance was selected
+                    JOptionPane.showMessageDialog(this,
+                        "Payment method set to INSURANCE. The appointment is now scheduled and will be processed for a claim later.",
+                        "Success",
+                        JOptionPane.INFORMATION_MESSAGE);
+                }
+                
+                // Finally, trigger the callback to refresh the main appointment list.
                 if (onDataChangeCallback != null) {
                     onDataChangeCallback.run();
                 }
             } else {
                 JOptionPane.showMessageDialog(this,
-                    "Failed to process payment. The appointment may have been modified by another user.",
+                    "Failed to process payment. The appointment may have been modified or an error occurred.",
                     "Error",
                     JOptionPane.ERROR_MESSAGE);
             }

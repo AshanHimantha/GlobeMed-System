@@ -78,7 +78,7 @@ public class ReportGeneratorPanel extends javax.swing.JPanel {
             JOptionPane.showMessageDialog(this, "Please select a report type.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        
+
         // Get date range
         Date fromDate = (Date) fromDateSpinner.getValue();
         Date toDate = (Date) toDateSpinner.getValue();

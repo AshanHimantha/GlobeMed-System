@@ -1,5 +1,6 @@
 package system.patterns.visitor;
 
+import java.time.LocalDate;
 import system.model.Appointment;
 import system.model.Claim;
 
@@ -75,5 +76,20 @@ public class ActivityReportVisitor implements ReportVisitor {
 
     public int getTotalClaims() {
         return pendingClaims + closedClaims;
+    }
+
+    @Override
+    public String getReportTitle() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    @Override
+    public String getDateRange(LocalDate from, LocalDate to) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    @Override
+    public String getSummaryHtml() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 }
