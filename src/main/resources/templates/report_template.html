@@ -1,0 +1,24 @@
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        h1 { color: #005c99; border-bottom: 2px solid #005c99; padding-bottom: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .summary { margin-top: 20px; font-size: 1.2em; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>{{reportTitle}}</h1>
+    <p>Report Generated on: {{generationDate}}</p>
+    <p>Date Range: {{dateRange}}</p>
+    
+    <div class="summary">
+        {{summarySection}}
+    </div>
+    
+    <!-- A placeholder for a detailed table, if needed -->
+    <!-- {{detailsTable}} -->
+</body>
+</html>

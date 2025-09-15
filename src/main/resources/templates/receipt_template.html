@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+        .receipt-container {  padding: 25px; width: 400px; margin: auto; }
+        .header { text-align: center; border-bottom: 2px solid #0099ff; padding-bottom: 15px; margin-bottom: 20px; }
+        .header img { width: 50px; }
+        .header h1 { margin: 0; color: #0099ff; }
+        .details-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .details-table td { padding: 8px; border-bottom: 1px solid #eee; }
+        .details-table td.label { font-weight: bold; width: 40%; }
+        .total-section { text-align: center; margin-top: 20px; font-size: 1.2em; }
+        .total-section .total-amount { font-weight: bold; color: #4CAF50; }
+        .footer { text-align: center; font-size: 0.8em; color: #777; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;}
+    </style>
+</head>
+<body>
+    <div class="receipt-container">
+        <div class="header">
+            <!-- You can add your logo here if you have one in resources/img/ -->
+            <!-- <img src="{{logoUrl}}" alt="Logo"> -->
+            <h1>GlobeMed</h1>
+            <h2>Payment Receipt</h2>
+        </div>
+
+        <table class="details-table">
+            <tr><td class="label">Appointment ID:</td><td>{{appointmentId}}</td></tr>
+            <tr><td class="label">Patient Name:</td><td>{{patientName}}</td></tr>
+            <tr><td class="label">Patient ID:</td><td>{{patientId}}</td></tr>
+            <tr><td class="label">Service Rendered:</td><td>{{serviceName}}</td></tr>
+            <tr><td class="label">Physician:</td><td>{{doctorName}}</td></tr>
+            <tr><td class="label">Date & Time:</td><td>{{dateTime}}</td></tr>
+        </table>
+        
+		<div class="total-section">
+			<hr>
+			<div style="display: flex; justify-content: space-between; align-items: center;">
+				<span>Total Amount Paid:</span>
+				<span class="total-amount">${{totalAmount}}</span>
+			</div>
+			<div style="display: flex; justify-content: space-between; align-items: center;">
+				<span>Payment Method:</span>
+				<strong>{{paymentMethod}}</strong>
+			</div>
+			<hr>
+		</div>
+
+        <div class="footer">
+            Payment confirmed by: {{confirmedBy}} on {{confirmationDate}}<br>
+            Thank you for choosing GlobeMed!
+        </div>
+    </div>
+</body>
+</html>
