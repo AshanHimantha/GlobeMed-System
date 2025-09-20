@@ -13,7 +13,7 @@ public class PersistenceManager {
     private final EntityManagerFactory emf;
 
     private PersistenceManager() {
-        // "globemed-pu" is the name from persistence.xml
+
         emf = Persistence.createEntityManagerFactory("globemed-pu");
     }
 

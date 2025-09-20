@@ -111,4 +111,45 @@ public class UserService {
         }
     }
 
+    public void updateUser(String username, UserRole role, String firstName, String lastName,
+                          String contactNumber, String address, Double consultationFee) {
+        EntityManager em = PersistenceManager.getInstance().getEntityManager();
+        try {
+            em.getTransaction().begin();
+
+            User user = em.find(User.class, username);
+            if (user == null) {
+                throw new RuntimeException("User not found: " + username);
+            }
+
+            // Update user properties
+            user.setRole(role);
+            user.setFirstName(firstName);
+            user.setLastName(lastName);
+            user.setContactNumber(contactNumber);
+            user.setAddress(address);
+
+            // Only set consultation fee for doctors
+            if (role == UserRole.DOCTOR && consultationFee != null) {
+                user.setConsultationFee(consultationFee);
+            } else {
+                user.setConsultationFee(null); // Clear consultation fee if not a doctor
+            }
+
+            em.merge(user);
+            em.getTransaction().commit();
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            System.err.println("Error updating user: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to update user", e);
+        } finally {
+            if (em != null) {
+                em.close();
+            }
+        }
+    }
 }
+

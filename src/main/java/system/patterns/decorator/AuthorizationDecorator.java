@@ -23,7 +23,7 @@ public class AuthorizationDecorator extends PatientRecordDecorator {
             return super.getDetails();
         } else {
             // If permission is denied, return an error message instead of the real data.
-            return "[ACCESS DENIED] User role '" + userRole + "' does not have permission to view patient records.";
+            return "[ACCESS DENIED]";
         }
     }
 

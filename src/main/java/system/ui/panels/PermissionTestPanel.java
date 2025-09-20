@@ -4,15 +4,12 @@ import java.awt.Font;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.swing.SwingConstants;
+import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.JOptionPane;
-import javax.swing.JTextArea;
-import javax.swing.JScrollPane;
-import javax.swing.BorderFactory;
+
 import system.model.User;
 import system.service.UserService;
 import system.enums.UserRole;
@@ -191,8 +188,41 @@ public class PermissionTestPanel extends javax.swing.JPanel {
         jLabel7.setText("User ID : " + selectedUser.getUsername());
         jLabel8.setText("User Name : " + selectedUser.getFirstName() + " " + selectedUser.getLastName());
 
-        // Show permission analysis
-        showPermissionAnalysis(selectedUser);
+        // Open the EditUserPanel instead of showing permission analysis
+        openEditUserDialog(selectedUser.getUsername());
+    }
+
+    /**
+     * Opens the edit user dialog for the specified user
+     * @param username The username of the user to edit
+     */
+    private void openEditUserDialog(String username) {
+        try {
+            // Create an EditUserPanel
+            EditUserPanel editPanel = new EditUserPanel();
+            editPanel.loadUser(username);
+
+            // Show it in a dialog
+            JOptionPane optionPane = new JOptionPane(editPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
+            JDialog dialog = optionPane.createDialog(this, "Edit User: " + username);
+
+            // Add property change listener to handle dialog closing
+            optionPane.addPropertyChangeListener(e -> {
+                if (JOptionPane.VALUE_PROPERTY.equals(e.getPropertyName())) {
+                    dialog.dispose();
+                    // Refresh the user table after editing
+                    loadAllUsers();
+                }
+            });
+
+            // Show the dialog
+            dialog.setVisible(true);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                "Error opening edit dialog: " + ex.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void showPermissionAnalysis(User user) {
@@ -209,7 +239,7 @@ public class PermissionTestPanel extends javax.swing.JPanel {
         analysis.append(formatPermission("View Patient Records", context.canViewPatientRecords()));
         analysis.append(formatPermission("Edit Patient Records", context.canEditPatientRecords()));
         analysis.append(formatPermission("Schedule Appointments", context.canScheduleAppointments()));
-        analysis.append(formatPermission("Prescribe Medication", context.canPrescribeMedication()));
+        analysis.append(formatPermission("Schedule Appointments", context.canScheduleAppointments()));
         analysis.append(formatPermission("Process Billing", context.canProcessBilling()));
         analysis.append(formatPermission("Generate Financial Reports", context.canGenerateFinancialReports()));
 
@@ -340,7 +370,7 @@ public class PermissionTestPanel extends javax.swing.JPanel {
         jPanel3.setMinimumSize(new java.awt.Dimension(0, 90));
         jPanel3.setPreferredSize(new java.awt.Dimension(987, 90));
 
-        jLabel1.setText("Staff Management Portal - User Permissions & Strategy Pattern");
+        jLabel1.setText("Staff Management Portal - User Permissions ");
         jLabel1.setFont(new java.awt.Font("Inter 18pt", Font.BOLD, 24));
         jLabel1.setForeground(new java.awt.Color(5, 5, 5));
 
@@ -400,9 +430,9 @@ public class PermissionTestPanel extends javax.swing.JPanel {
         roundedPanel1.setPreferredSize(new java.awt.Dimension(400, 800));
 
         jLabel3.setText("Add New Staff Member");
-        jLabel3.setBackground(new java.awt.Color(0, 0, 0));
+        roundedPanel1.setBackground(new java.awt.Color(255, 255, 255));
         jLabel3.setFont(new java.awt.Font("Inter 18pt SemiBold", Font.PLAIN, 20));
-        jLabel3.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel3.setForeground(new java.awt.Color(23, 23, 23));
 
         jLabel4.setText("Fill in the details to add a new staff member");
         jLabel4.setBackground(new java.awt.Color(153, 153, 153));
@@ -563,15 +593,15 @@ public class PermissionTestPanel extends javax.swing.JPanel {
         jPanel4.setLayout(new java.awt.BorderLayout(10, 10));
 
         roundedPanel2.setBackground(new java.awt.Color(255, 255, 255));
-        roundedPanel2.setForeground(new java.awt.Color(234, 234, 234));
         roundedPanel2.setMaximumSize(new java.awt.Dimension(32767, 600));
         roundedPanel2.setMinimumSize(new java.awt.Dimension(0, 600));
         roundedPanel2.setPreferredSize(new java.awt.Dimension(811, 600));
 
         jLabel9.setText("Staff Directory & Permissions");
-        jLabel9.setBackground(new java.awt.Color(0, 0, 0));
+        roundedPanel2.setBackground(new java.awt.Color(255, 255, 255));
+        roundedPanel2.setForeground(new java.awt.Color(234, 234, 234));
         jLabel9.setFont(new java.awt.Font("Inter 18pt SemiBold", Font.PLAIN, 20));
-        jLabel9.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel9.setForeground(new java.awt.Color(23, 23, 23));
 
         jLabel10.setText("Search and view staff members. Select a user to analyze their permissions.");
         jLabel10.setBackground(new java.awt.Color(153, 153, 153));
@@ -722,3 +752,4 @@ public class PermissionTestPanel extends javax.swing.JPanel {
     // End of variables declaration//GEN-END:variables
 
 }
+
