@@ -13,6 +13,7 @@
     <class>com.globemed.system.model.BillableItem</class>
     <class>com.globemed.system.model.DoctorSchedule</class>
     <class>com.globemed.system.model.Facility</class>
+    <class>com.globemed.system.model.AuditLog</class>
     <validation-mode>NONE</validation-mode>
     <properties>
       <!-- MySQL Database Connection Settings -->

@@ -259,4 +259,18 @@ public boolean processDirectPayment(Long appointmentId, PaymentMethod method, Us
         if (em != null) em.close();
     }
   }
+
+  public List<Appointment> getAppointmentsByPatient(Patient patient) {
+        EntityManager em = PersistenceManager.getInstance().getEntityManager();
+        try {
+            TypedQuery<Appointment> query = em.createQuery(
+                "SELECT a FROM Appointment a WHERE a.patient = :patient ORDER BY a.appointmentDateTime DESC",
+                Appointment.class
+            );
+            query.setParameter("patient", patient);
+            return query.getResultList();
+        } finally {
+            em.close();
+        }
+    }
 }
