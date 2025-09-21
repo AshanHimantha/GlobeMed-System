@@ -29,6 +29,6 @@ public class AuthorizationDecorator extends PatientRecordDecorator {
 
     private boolean hasPermission() {
         // For this system, we'll say only Doctors and Nurses can view patient records.
-        return userRole == UserRole.DOCTOR || userRole == UserRole.NURSE || userRole == UserRole.ADMIN;
+        return userRole == UserRole.DOCTOR  || userRole == UserRole.ADMIN;
     }
 }

@@ -114,7 +114,7 @@ public class PermissionTestPanel extends javax.swing.JPanel {
         for (User user : users) {
             String consultationFeeStr = "";
             if (user.getRole() == UserRole.DOCTOR && user.getConsultationFee() != null) {
-                consultationFeeStr = "$" + user.getConsultationFee();
+                consultationFeeStr = "Rs." + user.getConsultationFee();
             }
 
             String fullName = user.getFirstName() + " " + user.getLastName();
@@ -467,7 +467,7 @@ public class PermissionTestPanel extends javax.swing.JPanel {
         addressLabel.setFont(new java.awt.Font("Inter", Font.BOLD, 12));
         addressLabel.setForeground(new java.awt.Color(51, 51, 51));
 
-        jLabel15.setText("Consultation Fee ($):");
+        jLabel15.setText("Consultation Fee (Rs.):");
         jLabel15.setFont(new java.awt.Font("Inter", Font.BOLD, 12));
         jLabel15.setForeground(new java.awt.Color(51, 51, 51));
 
