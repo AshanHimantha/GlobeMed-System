@@ -10,7 +10,7 @@ import system.model.User;
 
 
 public interface AppointmentMediator {
-    // This signature must include ALL the data needed to create an appointment.
+
     boolean bookAppointment(Patient patient, User doctor, AppointmentType type,
                             LocalDateTime dateTime, MedicalService service, Facility facility);
 }

@@ -17,14 +17,10 @@ public class FinancialReportVisitor implements ReportVisitor{
     private int visitedAppointments = 0;
     private int visitedClaims = 0;
 
-    /**
-     * This method is called when the visitor "visits" an Appointment object.
-     * It extracts the price from the appointment.
-     */
+
     @Override
     public void visit(Appointment appointment) {
-        // We only count revenue from appointments that were paid directly (CASH/CARD)
-        // because insurance-based ones will be counted in the Claim.
+
         if (appointment.getPaymentMethod() != null && appointment.getPaymentMethod() != PaymentMethod.INSURANCE) {
             totalRevenueFromAppointments += appointment.getPrice();
         }

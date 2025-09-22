@@ -11,6 +11,7 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.Image;
+import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.HashMap;
 import java.util.List;
@@ -175,7 +176,7 @@ private final ClaimService claimService;
 
         RoundedPanel financialCard = createInfoCard(
             "Financial Summary",
-            currencyFormat.format(total),
+           currencyFormat.format(total) + " Rs.",
             "Total Amount to be Claimed",
             "accounting.png"
         );

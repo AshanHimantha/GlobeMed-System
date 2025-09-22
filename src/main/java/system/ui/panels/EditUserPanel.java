@@ -261,7 +261,7 @@ public class EditUserPanel extends javax.swing.JPanel {
         contactField.setRadius(10);
 
         jLabel6.setFont(new java.awt.Font("Inter", Font.BOLD, 12));
-        jLabel6.setText("Consultation Fee ($):");
+        jLabel6.setText("Consultation Fee (Rs.):");
 
         consultationFeeField.setFont(new java.awt.Font("Inter", Font.PLAIN, 12));
         consultationFeeField.setPlaceholder("Consultation Fee");

@@ -3,17 +3,12 @@ package system.ui.components;
 import system.model.Patient;
 import system.service.PatientService;
 import system.ui.panels.PatientRecordPanel;
-import system.model.User;
-import system.service.AuthenticationService;
-import system.service.AuditService;
-import system.model.AuditLog;
 
 import java.awt.Color;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
-import java.time.LocalDateTime;
 
 
 public class PatientCard extends javax.swing.JPanel {
@@ -328,20 +323,6 @@ public class PatientCard extends javax.swing.JPanel {
 
     private void jLabel15MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel15MouseClicked
         if (patient == null) return; // Safety check
-        // --- Audit Logging ---
-        User currentUser = AuthenticationService.getInstance().getLoggedInUser();
-        if (currentUser != null) {
-            AuditService auditService = new AuditService();
-            AuditLog logEntry = new AuditLog(
-                LocalDateTime.now(),
-                currentUser.getUsername(),
-                currentUser.getRole().toString(),
-                "VIEW_PATIENT_RECORD",
-                patient.getPatientId(),
-                "SUCCESS"
-            );
-            auditService.log(logEntry);
-        }
         JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
         // Use the original approach that was working in the code
         try {

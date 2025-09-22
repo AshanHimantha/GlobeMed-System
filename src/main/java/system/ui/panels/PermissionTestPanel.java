@@ -153,7 +153,7 @@ public class PermissionTestPanel extends javax.swing.JPanel {
 
                 String consultationFeeStr = "";
                 if (user.getRole() == UserRole.DOCTOR && user.getConsultationFee() != null) {
-                    consultationFeeStr = "$" + user.getConsultationFee();
+                    consultationFeeStr = "Rs." + user.getConsultationFee();
                 }
 
                 userMap.put(user.getUsername(), user);

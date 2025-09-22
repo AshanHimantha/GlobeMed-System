@@ -18,13 +18,7 @@ public class ConsultationStrategy implements SchedulingStrategy {
 
     private final AppointmentService appointmentService = new AppointmentService();
 
-    /**
-     * Checks if the resources for a standard consultation are available.
-     * For a consultation, this is only the doctor's time slot.
-     *
-     * @param proposedAppointment An Appointment object containing the proposed doctor and time.
-     * @return true if the doctor is available, false otherwise.
-     */
+
     @Override
     public boolean checkAvailability(Appointment proposedAppointment) {
         System.out.println("STRATEGY (Consultation): Checking doctor's schedule...");

@@ -400,18 +400,18 @@ public class ReportGeneratorPanel extends javax.swing.JPanel {
 
     private List<RoundedPanel> getFinancialReportCards(FinancialReportVisitor visitor, int totalElements) {
         List<RoundedPanel> cards = new ArrayList<>();
-        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance();
-
+        
+        // Simple formatting - just add "Rs." prefix to the amounts
         cards.add(createModernMetricCard("Total Revenue",
-            currencyFormat.format(visitor.getTotalRevenue()),
+            "Rs. " + String.format("%.2f", visitor.getTotalRevenue()),
             "Revenue from all sources", "profit-up_1.png"));
 
         cards.add(createModernMetricCard("Direct Payments",
-            currencyFormat.format(visitor.getTotalRevenueFromAppointments()),
+            "Rs. " + String.format("%.2f", visitor.getTotalRevenueFromAppointments()),
             visitor.getVisitedAppointments() + " appointments processed", "cash-payment.png"));
 
         cards.add(createModernMetricCard("Insurance Claims",
-            currencyFormat.format(visitor.getTotalRevenueFromClaims()),
+            "Rs. " + String.format("%.2f", visitor.getTotalRevenueFromClaims()),
             visitor.getVisitedClaims() + " claims processed", "claim.png"));
 
         Date fromDate = (Date) fromDateSpinner.getValue();
